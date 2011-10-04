@@ -40,23 +40,24 @@ SourceStream.prototype.nextch = function() {
 
 	ch = this.peekch ();
 	this.cursor++;
+	this.column++;
 
 	switch (ch) {
-		case 92: /* backslash */
-			if (this.peekch () == 10) {
-				/* backslash and newline - join lines */
-				this.line++;
-				this.cursor++;
-				return this.nextch ();
-			}
-			break;
-		case 10: /* newline */
+	case 92: /* backslash */
+		switch (this.peekch ()) {
+		case 10:
+			/* backslash and newline - join lines */
+			this.cursor++;
 			this.line++;
 			this.column = 1;
+			ch = this.nextch ();
 			break;
-		default:
-			this.column++;
-			break;
+		}
+		break;
+	case 10: /* newline */
+		this.line++;
+		this.column = 1;
+		break;
 	}
 
 	return ch;

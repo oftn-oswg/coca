@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="qunit.css" type="text/css" media="screen" />
+</head>
+<body>
+
+<h1 id="qunit-header">Coca Tests</h1>
+<h2 id="qunit-banner"></h2>
+<div id="qunit-testrunner-toolbar"></div>
+<h2 id="qunit-userAgent"></h2>
+<ol id="qunit-tests"></ol>
+
+<script type="text/javascript" src="qunit.js"></script>
+<script type="text/javascript" src="../src/SourceStream.js"></script>
+
+<script type="text/javascript">
+
+module ("SourceStream");
+test("Ending backslash removal and line number", function() {
+
+	var source = "f\nop \\\nba\\z";
+	var stream = new SourceStream({}, source);
+
+	var result = "f\nop ba\\z";
+	var lines = [1, 1, 2, 2, 2, 3, 3, 3, 3];
+	var columns = [1, 2, 1, 2, 3, 1, 2, 3, 4];
+
+	var ch, cursor = 0, line = 1, column = 1;
+	while ((ch = stream.nextch())) {
+		equal (String.fromCharCode(ch), result.charAt(cursor), "Test character @ "+cursor);
+		equal (line, lines[cursor], "Test line number @ "+cursor);
+		equal (column, columns[cursor], "Test column number @ "+cursor);
+
+		cursor++;
+		line = stream.line;
+		column = stream.column;
+	}
+});
+</script>
+
+</body>
+</html>
