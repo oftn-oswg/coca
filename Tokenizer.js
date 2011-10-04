@@ -1,141 +1,235 @@
-var Node = require("./Node.js");
+var Token = function(type, a1) {
+	this.type = type;
 
-var Tokenizer = function (source) {
-	this.source = String(source);
-	this.pos = {cursor: 0, line: 1, column: 1};
-};
-
-
-Tokenizer.hashify = function(array) {
-	var o = {}, len = array.length;
-
-	while (len--) {
-		o[array[len]] = true;
-	}
-
-	return o;
-};
-
-
-Tokenizer.keywords = Tokenizer.hashify (["auto","break","case","char","const","continue","default","do","double","else","enum","extern","float","for","goto","if","inline","int","long","register","restrict","return","short","signed","sizeof","static","struct","switch","typedef","union","unsigned","void","volatile","while","_Bool","_Complex","_Imaginary"]);
-
-
-Tokenizer.punctuators = Tokenizer.hashify (["[","]","(",")","{","}",".","->","++","--","&","*","+","-","~","!","/","%","<<",">>","<",">","<=",">=","==","!=","^","|","&&","||","?",":",";","...","=","*=","/=","%=","+=","-=","<<=",">>=","&=","^=","|=",",","#","##","<:",":>","<%","%>","%:","%:%:"]);
-
-
-Tokenizer.prototype.peek_ch = function () {
-	var code = this.source.charCodeAt (this.pos.cursor);
-	return code;
-};
-
-
-Tokenizer.prototype.next_ch = function (signal_eof) {
-	var code = this.source.charCodeAt (this.pos.cursor++);
-	if (signal_eof && isNaN (code))
-		throw new SyntaxError("Unexpected end of input");
-	
-	if (code == 10) {
-		this.pos.line++;
-		this.pos.column = 1;
-	} else {
-		this.pos.column++;
-	}
-	return code;
-};
-
-
-Tokenizer.prototype.is_whitespace = function (code) {
-	switch (code) {
-		case 9: // Horizontal tab
-		case 10: // Newline
-		case 11: // Vertical tab
-		case 12: // Form feed
-		case 32:  // Space character
-			return true;
-	}
-	return false;
-};
-
-
-Tokenizer.prototype.is_identifier_nondigit = function(code) {
-	if (code === 95) return true; // '_' character
-	if ((code >= 65 && code <= 90) ||
-		(code >= 97 && code <= 122)) return true; // [a-zA-Z]
-	return false;
-};
-
-
-Tokenizer.prototype.is_identifier_digit = function(code) {
-	if (code >= 48 && code <= 57) return true; // [0-9]
-	return false;
-}
-
-
-Tokenizer.prototype.skip_whitespace = function () {
-	while (this.is_whitespace (this.peek_ch ())) {
-		this.next_ch ();
+	switch (type) {
+	case Token.IDENTIFIER:
+		this.name = String(a1);
 	}
 };
 
+Token.IDENTIFIER = 1;
+
+var Tokenizer = function(source) {
+	this.source = source;
+	this.pos = 0;
+};
+
+Tokenizer.SyntaxError = function(msg) { this.message = msg; };
+Tokenizer.SyntaxError.prototype.name = "SyntaxError";
+
+Tokenizer.prototype.next = function(error_on_eof) {
+	var ch;
+
+	ch = this.source.charCodeAt(this.pos++);
+
+	if (error_on_eof && isNaN (ch)) {
+		throw new Tokenizer.SyntaxError (error_on_eof);
+	}
+	return ch;
+};
+
+Tokenizer.prototype.peek = function() {
+	return this.source.charCodeAt (this.pos);
+};
+
+Tokenizer.prototype.is_idenfitier_char = function(ch) {
+	/* 6.4.2.1p2
+	 * An identifier is a sequence of nondigit characters (including the underscore _, the
+	 * lowercase and uppercase Latin letters, and other characters) and digits, which designates
+	 * one or more entities as described in 6.2.1. Lowercase and uppercase letters are distinct.
+	 * There is no specific limit on the maximum length of an identifier.
+	 */
+
+	return (ch >= 65 && ch <= 90) ||  // [A-Z]
+	       (ch >= 97 && ch <= 122) || // [a-z]
+	       (ch >= 48 && ch <= 57) || ch === 95; // [0-9] // _
+};
+
+Tokenizer.prototype.is_alpha = function(ch) {
+	return (ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122);
+};
+
+
+Tokenizer.prototype.is_digit = function(ch) {
+	return ch >= 48 && ch <= 57;
+};
+
+Tokenizer.prototype.is_hexadecimal_digit = function(ch) {
+	return (ch >= 48 && ch <= 57) || (ch >= 97 && ch <= 102) || (ch >= 65 && ch <= 70);
+};
 
 Tokenizer.prototype.lex_identifier = function() {
-	var ret = [], code;
+	var ch, start = this.pos, length = 0;
 
-	while (true) {
-		code = this.peek_ch ();
+	while (ch = this.peek(), this.is_identifier_char(ch)) {
+		this.next ();
+		length++;
+	}
 
-		if (isNaN (code)) break;
-		
-		if (this.is_identifier_nondigit (code) ||
-			this.is_identifier_digit (code)) {
+	return new Token(Token.IDENTIFIER, this.source.substring (start, start+length));
+};
 
-			ret.push (this.next_ch ());
-			continue;
+Tokenizer.prototype.scan_digit_sequence = function(radix) {
+	var length;
+
+	length = 0;
+	for (;;) {
+		switch (radix) {
+		case 16:
+			while (ch = this.peek(), this.is_hexadecimal_digit (ch)) {
+				this.next ();
+				length++;
+			}
+			break;
+		case 10:
+		case 8:
+			while (ch = this.peek(), this.is_digit (ch)) {
+				if (radix === 8 && (ch === 56 || ch === 57)) {
+					throw new Tokenizer.SyntaxError ("Invalid digit "+(ch-48)+" in octal literal");
+				}
+				this.next ();
+				length++;
+			}
+			break;
+		}
+	}
+
+	return length;
+};
+
+Tokenizer.prototype.lex_number = function() {
+	var ch, start = this.pos, length = 0, radix;
+	var is_unsigned, is_long, is_long_long, is_floating, is_float;
+
+	is_unsigned = false;
+	is_long = false;
+	is_long_long = false;
+	is_floating = false;
+	is_float = false;
+	
+	radix = 10;
+	ch = this.peek();
+
+	/* Get the type of number */
+	if (ch === 48) /* "0" */ {
+		/* Number is an octal constant or hexadecimal constant */
+		radix = 8;
+		this.next ();
+		length++;
+
+		ch = this.peek ();
+		if (ch === 88 || ch === 120) /* x, X */ {
+			radix = 16;
+			this.next ();
+			length++;
+		}
+	}
+
+	length += this.scan_digit_sequence (radix);
+
+	ch = this.peek();
+	if (ch === 46) { /* . */
+		is_floating = true;
+		length += this.scan_digit_sequence (radix);
+	}
+
+	ch = this.peek();
+	if (ch === 101 || ch === 69 || ch === 112 || ch === 80) /* e, E, p, P */ {
+		this.next ();
+		length++;
+		/* First check for a sign */
+		ch = this.peek ();
+		if (ch === 43 || ch === 45) {
+			this.next ();
+			length++;
 		}
 
-		break;
+		var exponent_length = this.scan_digit_sequence (10);
+		if (exponent_length) {
+			is_floating = true;
+			length += exponent_length;
+		} else {
+			this.error ("Exponent has no digits");
+		}
 	}
 
-	return String.fromCharCode.apply (null, ret);
-};
+	/* Number suffix */
+	scan_suffix:
+	while (ch = this.peek(), this.is_alpha (ch)) {
+		this.next ();
 
-
-Tokenizer.prototype.handle_directive = function() {
-	var code;
-
-	while (this.peek_ch () !== 10) {
-		this.next_ch ();
+		switch (ch) {
+		case 177: case 85: /* U, u */
+			if (!is_unsigned) {
+				is_unsigned = true;
+				continue scan_suffix;
+			}
+			break;
+		case 108: case 76: /* L, l */
+			if (!is_long) {
+				is_long = true;
+				continue scan_suffix;
+			} else if (!is_long_long) {
+				is_long_long = true;
+				continue scan_suffix;
+			}
+		}
+		
+		this.error ("Invalid suffix on integer constant");
 	}
-};
 
+};
 
 Tokenizer.prototype.consume = function() {
-	var code, name, token, line, column;
-	
-	this.skip_whitespace ();
-	
-	line = this.pos.line;
-	column = this.pos.column;
-	
-	code = this.peek_ch ();
-	
-	if (isNaN (code)) return null;
+	var ch;
 
-	if (code === 35 && column === 1) {
-		this.handle_directive ();
+	ch = this.peek ();
+	switch (ch) {
+	default:
+		if (this.is_digit (ch)) {
+			return this.lex_number();
+		}
+		if (this.is_identifier_start (ch)) {
+			return this.lex_identifier();
+		}
 	}
-	
-	if (this.is_identifier_nondigit (code)) {
-		return this.lex_identifier ();
-	}
-
-	throw "Unexpected "+String.fromCharCode(code);
-	
+	return null;
 };
 
+/*
+var Parser = function() {
+};
 
-if (module) module.exports = Tokenizer;
+Parser.prototype.translation_unit = function() {
+	var token, ast;
 
-var parser = new Tokenizer ("#include <stdio.h>\nint main(int argc, char *argv[]) { while (argc--) puts (argv[argc]); }");
+	ast = ["translation-unit"];
+	token = this.tokenizer.lookahead ();
 
-console.log (parser.TranslationUnit());
+	if (token.type === Token.EOF) {
+		this.warn ("ISO C forbids an empty translation unit");
+	} else {
+		do {
+			ast.push (this.exteral_declaration ());
+
+		} while (token = this.tokenizer.lookahead (),
+		         token.type !== Token.EOF);
+
+	}
+
+	return ast;
+};
+
+Parser.prototype.external_declaration = function() {
+	var ext, ast, token;
+
+	ast = ["external-declaration"];
+	token = this.tokenizer.lookahead ();
+
+	switch (token.type) {
+	case Token.SEMICOLON:
+		
+	}
+};
+
+//*/
