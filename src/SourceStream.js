@@ -1,3 +1,5 @@
+"use strict";
+
 /*
  * SourceStream:
  * The SourceStream object implements the first two phases of translation.
@@ -32,44 +34,46 @@ var SourceStream = function(options, string) {
 };
 
 /*
+ * Gets the character code of the source at the specified index,
+ * or zero if out-of-bounds.
+ */
+SourceStream.prototype.ch = function(index) {
+	return this.source.charCodeAt (index) | 0;
+};
+
+/*
  * Gets the character code of the source at the current cursor
  * and increments the cursor.
  */
 SourceStream.prototype.nextch = function() {
-	var ch;
+	var ch, cursor = this.cursor;
 
-	ch = this.peekch ();
-	this.cursor++;
-	this.column++;
+	ch = this.ch (cursor) | 0;
+	cursor++;
 
-	switch (ch) {
-	case 92: /* backslash */
-		switch (this.peekch ()) {
-		case 10:
-			/* backslash and newline - join lines */
-			this.cursor++;
-			this.line++;
-			this.column = 1;
-			ch = this.nextch ();
-			break;
+	if (ch === 92) { /* backslash */
+		if (this.ch (cursor) === 10) {
+			/* backslash followed by newline */
+			ch = this.ch (cursor + 1) | 0;
+			cursor += 2;
 		}
-		break;
-	case 10: /* newline */
-		this.line++;
-		this.column = 1;
-		break;
 	}
+
+	this.cursor = cursor;
 
 	return ch;
 };
 
 /*
  * Gets the character code of the source at the current cursor,
- * or zero if out-of-bounds
+ * but does not increment the cursor.
  */
 SourceStream.prototype.peekch = function() {
-	var ch;
+	var cursor, ch;
+	
+	cursor = this.cursor;
+	ch = this.nextch ();
+	this.cursor = cursor;
 
-	ch = this.source.charCodeAt (this.cursor) | 0;
 	return ch;
 };
