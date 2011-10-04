@@ -41,12 +41,22 @@ SourceStream.prototype.nextch = function() {
 	ch = this.peekch ();
 	this.cursor++;
 
-	/* If character is a newline character */
-	if (ch === 10) {
-		this.line++;
-		this.column = 1;
-	} else {
-		this.column++;
+	switch (ch) {
+		case 92: /* backslash */
+			if (this.peekch () == 10) {
+				/* backslash and newline - join lines */
+				this.line++;
+				this.cursor++;
+				return this.nextch ();
+			}
+			break;
+		case 10: /* newline */
+			this.line++;
+			this.column = 1;
+			break;
+		default:
+			this.column++;
+			break;
 	}
 
 	return ch;
