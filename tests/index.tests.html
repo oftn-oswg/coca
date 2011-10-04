@@ -13,6 +13,7 @@
 
 <script type="text/javascript" src="qunit.js"></script>
 <script type="text/javascript" src="../src/SourceStream.js"></script>
+<script type="text/javascript" src="../src/Tokenizer.js"></script>
 
 <script type="text/javascript">
 
@@ -32,6 +33,17 @@ test("Ending backslash removal and line number", function() {
 		//equal (stream.line, lines[cursor], "Test line number @ "+cursor);
 		//equal (stream.column, columns[cursor], "Test column number @ "+cursor);
 		cursor++;
+	}
+});
+
+module ("Tokenizer");
+test ("Greedy matching 'a+++++a;'", function() {
+	var t = new Tokenizer(null, new SourceStream(null, "a+++++a;")), tok;
+	var result = ["a", "++", "++", "+", "a", ";"];
+	var i = 0;
+
+	while (tok = t.consume ()) {
+		equal (tok, result[i++], "Test returned token");
 	}
 });
 </script>
