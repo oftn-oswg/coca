@@ -134,15 +134,14 @@ Tokenizer.prototype.lookahead = function() {
 
 
 Tokenizer.prototype.read_punctuator = function() {
-	var stream, ch, punc, value;
+	var ch, punc, value;
 
-	stream = this;
 	punc = Token.punctuators;
 	value = null;
 
-	while (ch = stream.peekch (), punc = punc[ch]) {
+	while (ch = this.peekch (), punc = punc[ch]) {
 		if (punc.value) value = punc.value;
-		stream.nextch ();
+		this.nextch ();
 	}
 
 	if (!value) {
@@ -158,13 +157,12 @@ Tokenizer.prototype.read_punctuator = function() {
  * There is no specific limit on the maximum length of an identifier.
  */
 Tokenizer.prototype.read_identifier = function() {
-	var stream, characters, name, type, ch;
+	var characters, name, type, ch;
 
-	stream = this;
 	characters = [];
 
-	while (ch = stream.peekch (), this.is_identifier_char (ch)) {
-		characters.push (stream.nextch ());
+	while (ch = this.peekch (), this.is_identifier_char (ch)) {
+		characters.push (this.nextch ());
 	}
 
 	name = String.fromCharCode.apply (null, characters);
