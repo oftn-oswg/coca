@@ -53,6 +53,7 @@ Tokenizer.prototype.ch = function(index) {
 };
 
 /* Saves the current cursor, line, and column so it can be restored later */
+/* FIXME: I hate these functions. */
 Tokenizer.prototype.save = function() {
 	this.states.push ({
 		cursor: this.cursor,
@@ -62,6 +63,7 @@ Tokenizer.prototype.save = function() {
 };
 
 /* Restores the cursor, line, and column of a previously saved state */
+/* FIXME: Skewer me with a rake. */
 Tokenizer.prototype.restore = function() {
 	var states = this.states;
 	if (!states.length) {
@@ -146,12 +148,22 @@ Tokenizer.prototype.peekch = function() {
 Tokenizer.prototype.consume = function() {
 	var ch = this.peekch ();
 
-	if (this.is_whitespace (ch))      return new Token (Token.WHITESPACE, ch);
+	if (this.is_whitespace (ch))      return new Token (Token.WHITESPACE, this.nextch ());
 	if (this.is_digit (ch))           return this.read_number ();
 	if (this.is_identifier_char (ch)) return this.read_identifier ();
 	if (ch === 34) /* double-quote */ return this.read_string_literal ();
 	if (ch === 39) /* single-quote */ return this.read_character_constant ();
 	if (ch === 0)  /* end-of-file  */ return null;
+
+	if (ch === 47) /* forward slash */ {
+		this.save (); /* FIXME: I hate this. */
+		this.nextch ();
+		switch (this.nextch ()) {
+		case 47: return this.read_bcpl_comment ();
+		case 42: return this.read_block_comment ();
+		}
+		this.restore ();
+	}
 
 	// If all else fails, assume a punctuator.
 	return this.read_punctuator ();
@@ -207,14 +219,81 @@ Tokenizer.prototype.read_identifier = function() {
 	return Token.keywords[name] || new Token (Token.IDENTIFIER, name);
 };
 
+/* 6.4.9p2
+ * Except within a character constant, a string literal, or a comment, the characters //
+ * introduce a comment that includes all multibyte characters up to, but not including, the
+ * next new-line character. The contents of such a comment are examined only to identify
+ * multibyte characters and to find the terminating new-line character.
+ */
+Tokenizer.prototype.read_bcpl_comment = function() {
+	var ch;
+
+	while (ch = this.peekch (), ch !== 10 && ch !== 0)
+		/* while ch is not a newline */
+		this.nextch ();
+
+	return new Token (Token.WHITESPACE, 32); // 5.1.1.2p3 "Each comment is replaced by one space character."
+};
+
+// 6.4.9p1
+// Except within a character constant, a string literal, or a comment, the characters /*
+// introduce a comment. The contents of such a comment are examined only to identify
+// multibyte characters and to find the characters */ that terminate it.71)
+
+Tokenizer.prototype.read_block_comment = function() {
+	var ch, slash, term = false;
+
+	loop:
+	while (ch = this.peekch ()) {
+		switch (ch) {
+		case 0: this.error ("Unterminated comment");
+		case 47: if (term) { this.nextch (); break loop; }
+		case 42: term = true; break;
+		default: term = false; break;
+		}
+		this.nextch ();
+	}
+
+	return new Token (Token.WHITESPACE, 32); // 5.1.1.2p3
+};
+
 Tokenizer.prototype.codes_to_string = function(code_array) {
 	return String.fromCharCode.apply (null, code_array);
+};
+
+Tokenizer.prototype.error = function(message) {
+	throw new SyntaxError (message + " on line " + this.line + ", col " + this.column);
+};
+Tokenizer.prototype.warn = Tokenizer.prototype.error;
+Tokenizer.prototype.log = function(message) {
+	console.log (message);
+};
+
+Tokenizer.prototype.iterate = function() {
+	var array = [], token;
+	while (token = this.consume ()) {
+		array.push (token);
+	}
+	return array;
 };
 
 
 var Token = function(type, value) {
 	this.type = type;
 	this.value = value;
+};
+
+Token.prototype.toString = function() {
+	switch (this.type) {
+	case Token.KEYWORD:
+		return "Keyword";
+	case Token.WHITESPACE:
+		return String.fromCharCode (this.value);
+	case Token.IDENTIFIER:
+		return this.value;
+	case Token.PUNCTUATOR:
+		return "Punctuator";
+	}
 };
 
 /* Token types */
