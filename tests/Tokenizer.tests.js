@@ -3,6 +3,28 @@
 module ("Tokenizer");
 
 ///*
+test ("Ending backslash removal and line number", function() {
+	var source = "f\nop \\\nba\\z";
+	var t = new Tokenizer(null, source);
+
+	var result = "f\nop ba\\z";
+	var lines = [1, 1, 2, 2, 2, 2, 3, 3, 3]; // [5] should in reality be 3, but I'm not picky
+	var columns = [1, 2, 1, 2, 3, 4, 2, 3, 4]; // [5] -> 1
+
+	var ch, cursor = 0, line = 1, column = 1;
+	while ((ch = t.nextch())) {
+		equal (String.fromCharCode(ch), result.charAt(cursor), "Test character @ "+cursor);
+		equal (line, lines[cursor], "Test line number @ "+cursor);
+		equal (column, columns[cursor], "Test column number @ "+cursor);
+
+		cursor++;
+		line = t.line;
+		column = t.column;
+	}
+});
+//*/
+
+///*
 test ("Greedy matching 'a+++++a;'", function() {
 	var t = new Tokenizer(null, "a+++++a;");
 	var result = [

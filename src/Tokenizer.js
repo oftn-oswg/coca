@@ -5,21 +5,6 @@
  * options -> Global options
  * string  -> Source code to stream from
  *
- * 5.1.1.2 Translation Phases
- *
- *   1. Physical source file multibyte characters are mapped, in an implementation-
- *      defined manner, to the source character set (introducing new-line characters for
- *      end-of-line indicators) if necessary. Trigraph sequences are replaced by
- *      corresponding single-character internal representations.
- *
- *   2. Each instance of a backslash character (\) immediately followed by a new-line
- *      character is deleted, splicing physical source lines to form logical source lines.
- *      Only the last backslash on any physical source line shall be eligible for being part
- *      of such a splice. A source file that is not empty shall end in a new-line character,
- *      which shall not be immediately preceded by a backslash character before any such
- *      splicing takes place.
- *
- *
  * 6.4 Lexical elements
  * Syntax
  *
@@ -47,16 +32,15 @@ var Tokenizer = function(options, string) {
 	this.cursor = 0;
 	this.line = 1;
 	this.column = 1;
+
+	this.states = [];
 };
 
-
+Tokenizer.prototype.is_digit           = function(ch) { return ch >= 48 && ch <= 57; /* [0-9] */ };
+Tokenizer.prototype.is_whitespace      = function(ch) { return ch === 32 || (ch >= 9 && ch <= 12); };
 Tokenizer.prototype.is_identifier_char = function(ch) { return (ch >= 65 && ch <= 90) ||            /* [A-Z] */
                                                                (ch >= 97 && ch <= 122) ||           /* [a-z] */
                                                                (ch >= 48 && ch <= 57) || ch === 95; /* [0-9_] */};
-
-Tokenizer.prototype.is_digit           = function(ch) { return ch >= 48 && ch <= 57; /* [0-9] */ };
-
-Tokenizer.prototype.is_whitespace      = function(ch) { return ch === 32 || (ch >= 9 && ch <= 12); };
 
 /*
  * Gets the character code of the source at the specified index,
@@ -68,27 +52,74 @@ Tokenizer.prototype.ch = function(index) {
 	return this.source.charCodeAt (index) | 0;
 };
 
+/* Saves the current cursor, line, and column so it can be restored later */
+Tokenizer.prototype.save = function() {
+	this.states.push ({
+		cursor: this.cursor,
+		line: this.line,
+		column: this.column
+	});
+};
+
+/* Restores the cursor, line, and column of a previously saved state */
+Tokenizer.prototype.restore = function() {
+	var states = this.states;
+	if (!states.length) {
+		throw new Error("Cannot restore, state was not saved");
+	}
+
+	var obj = states.pop ();
+	this.cursor = obj.cursor;
+	this.line = obj.line;
+	this.column = obj.column;
+};
+
 /*
  * Gets the character code of the source at the current cursor
  * and increments the cursor.
  *
  * TODO: Support trigraph sequences as an option
+ *
+ * 5.1.1.2 Translation Phases
+ *
+ *   1. Physical source file multibyte characters are mapped, in an implementation-
+ *      defined manner, to the source character set (introducing new-line characters for
+ *      end-of-line indicators) if necessary. Trigraph sequences are replaced by
+ *      corresponding single-character internal representations.
+ *
+ *   2. Each instance of a backslash character (\) immediately followed by a new-line
+ *      character is deleted, splicing physical source lines to form logical source lines.
+ *      Only the last backslash on any physical source line shall be eligible for being part
+ *      of such a splice. A source file that is not empty shall end in a new-line character,
+ *      which shall not be immediately preceded by a backslash character before any such
+ *      splicing takes place.
  */
 Tokenizer.prototype.nextch = function() {
-	var ch, cursor = this.cursor;
+	var ch;
 
-	ch = this.ch (cursor) | 0;
-	cursor++;
+	ch = this.ch (this.cursor);
+	this.cursor++;
+	this.column++;
 
-	if (ch === 92) { /* backslash */
-		if (this.ch (cursor) === 10) {
-			/* backslash followed by newline */
-			ch = this.ch (cursor + 1) | 0;
-			cursor += 2;
+	switch (ch) {
+	case 92:
+		/* backslash */
+		switch (this.ch (this.cursor)) {
+		case 10:
+			/* backslash and newline; skip */
+			this.cursor++;
+			this.line++;
+			this.column = 1;
+			ch = this.nextch ();
+			break;
 		}
+		break;
+	case 10:
+		/* newline */
+		this.line++;
+		this.column = 1;
+		break;
 	}
-
-	this.cursor = cursor;
 
 	return ch;
 };
@@ -100,9 +131,9 @@ Tokenizer.prototype.nextch = function() {
 Tokenizer.prototype.peekch = function() {
 	var cursor, ch;
 	
-	cursor = this.cursor;
+	this.save ();
 	ch = this.nextch ();
-	this.cursor = cursor;
+	this.restore ();
 
 	return ch;
 };
@@ -130,6 +161,13 @@ Tokenizer.prototype.consume = function() {
  * Peeks the next token off the stream
  */
 Tokenizer.prototype.lookahead = function() {
+	var token;
+
+	this.save ();
+	token = this.consume ();
+	this.restore ();
+
+	return token;
 };
 
 
@@ -165,8 +203,12 @@ Tokenizer.prototype.read_identifier = function() {
 		characters.push (this.nextch ());
 	}
 
-	name = String.fromCharCode.apply (null, characters);
+	name = this.codes_to_string (characters);
 	return Token.keywords[name] || new Token (Token.IDENTIFIER, name);
+};
+
+Tokenizer.prototype.codes_to_string = function(code_array) {
+	return String.fromCharCode.apply (null, code_array);
 };
 
 
