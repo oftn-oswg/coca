@@ -1,5 +1,3 @@
-"use strict";
-
 var Type = function(name, storage, qualifiers, type, list) {
 	this.name = name;
 	this.storage = storage;
