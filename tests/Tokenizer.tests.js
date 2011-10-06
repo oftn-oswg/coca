@@ -4,7 +4,7 @@ module ("Tokenizer");
 
 ///*
 test ("Greedy matching 'a+++++a;'", function() {
-	var t = new Tokenizer(null, new SourceStream(null, "a+++++a;"));
+	var t = new Tokenizer(null, "a+++++a;");
 	var result = [
 		"a",
 		Token.PUNC_INCREMENT.value,
@@ -23,7 +23,7 @@ test ("Greedy matching 'a+++++a;'", function() {
 //*/
 /*
 test ("Random test", function() {
-	var t = new Tokenizer(null, new SourceStream(null, "#include <stdio.h>\nint main(int argc, char *argv[]) {\n\twhile (argc--) {\n\t\tputs (argv[argc]);\n\t}\n\treturn EXIT_SUCCESS;\n}\n")), tok;
+	var t = new Tokenizer(null, "#include <stdio.h>\nint main(int argc, char *argv[]) {\n\twhile (argc--) {\n\t\tputs (argv[argc]);\n\t}\n\treturn EXIT_SUCCESS;\n}\n"), tok;
 	var result = ["#", "include", " ", "<", "stdio", ".", "h", ">", "\n", "int", " ", "main", "(", "int", " ", "argc", ",", " ", "char", " ", "*", "argv", "[", "]", ")", " ", "{", "\n\t", "while", " ", "(", "argc", "--", ")", " ", "{", "\n\t\t", "puts", " ", "(", "argv", "[", "argc", "]", ")", ";", "\n\t", "}", "\n\t", "return", " ", "EXIT_SUCCESS", ";", "\n", "}", "\n"];
 	var i = 0;
 
