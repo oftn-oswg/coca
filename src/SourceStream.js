@@ -1,7 +1,7 @@
 "use strict";
 
-/*
- * SourceStream:
+/* SourceStream
+ * ------------
  * The SourceStream object implements the first two phases of translation.
  * It supplies methods for accessing a stream of characters from the source file.
  *
@@ -36,6 +36,8 @@ var SourceStream = function(options, string) {
 /*
  * Gets the character code of the source at the specified index,
  * or zero if out-of-bounds.
+ *
+ * TODO: Pair unicode surrogate pairs
  */
 SourceStream.prototype.ch = function(index) {
 	return this.source.charCodeAt (index) | 0;
@@ -44,6 +46,8 @@ SourceStream.prototype.ch = function(index) {
 /*
  * Gets the character code of the source at the current cursor
  * and increments the cursor.
+ *
+ * TODO: Support trigraph sequences as an option
  */
 SourceStream.prototype.nextch = function() {
 	var ch, cursor = this.cursor;
@@ -77,3 +81,7 @@ SourceStream.prototype.peekch = function() {
 
 	return ch;
 };
+
+if (typeof module !== "undefined") {
+	module.exports = SourceStream;
+}

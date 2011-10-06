@@ -8,45 +8,14 @@
 <h1 id="qunit-header">Coca Tests</h1>
 <h2 id="qunit-banner"></h2>
 <div id="qunit-testrunner-toolbar"></div>
-<h2 id="qunit-userAgent"></h2>
 <ol id="qunit-tests"></ol>
 
 <script type="text/javascript" src="qunit.js"></script>
 <script type="text/javascript" src="../src/SourceStream.js"></script>
 <script type="text/javascript" src="../src/Tokenizer.js"></script>
 
-<script type="text/javascript">
-
-module ("SourceStream");
-test("Ending backslash removal and line number", function() {
-
-	var source = "f\nop \\\nba\\z";
-	var stream = new SourceStream({}, source);
-
-	var result = "f\nop ba\\z";
-	//var lines = [1, 1, 2, 2, 2, 3, 3, 3, 3];
-	//var columns = [1, 2, 1, 2, 3, 1, 2, 3, 4];
-
-	var ch, cursor = 0;
-	while ((ch = stream.nextch())) {
-		equal (String.fromCharCode(ch), result.charAt(cursor), "Test character @ "+cursor);
-		//equal (stream.line, lines[cursor], "Test line number @ "+cursor);
-		//equal (stream.column, columns[cursor], "Test column number @ "+cursor);
-		cursor++;
-	}
-});
-
-module ("Tokenizer");
-test ("Greedy matching 'a+++++a;'", function() {
-	var t = new Tokenizer(null, new SourceStream(null, "a+++++a;")), tok;
-	var result = ["a", "++", "++", "+", "a", ";"];
-	var i = 0;
-
-	while (tok = t.consume ()) {
-		equal (tok, result[i++], "Test returned token");
-	}
-});
-</script>
+<script type="text/javascript" src="SourceStream.tests.js"></script>
+<script type="text/javascript" src="Tokenizer.tests.js"></script>
 
 </body>
 </html>
