@@ -1,0 +1,30 @@
+html, body {
+	background-color: black;
+}
+
+#qunit-header {
+	color: #C2CCD1;
+	background-image: url(noise-bg.png);
+}
+
+#qunit-header a {
+	color: white;
+}
+
+#qunit-testrunner-toolbar {
+	color: black;
+}
+
+#qunit-testresult, #qunit-tests .pass, #qunit-tests .fail {
+	background-color: #eee;
+	color: black;
+}
+
+#qunit-tests .fail {
+	background-color: #EE5757;
+}
+
+#qunit-tests .pass .test-name {
+	color: black;
+	font-weight: normal;
+}

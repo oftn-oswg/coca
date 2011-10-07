@@ -60,7 +60,7 @@ Tokenizer.prototype.ch = function(index) {
 	}
 };
 
-/* FIXME: I hate these functions. */
+/* Saves the current cursor, line, and column so it can be restored later */
 Tokenizer.prototype.save = function() {
 	this.states.push ({
 		cursor: this.cursor,
