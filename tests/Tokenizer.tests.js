@@ -49,7 +49,7 @@ test ("UTF-16 surrogates are converted", function() {
 	var result = [0x10000,0x103FF,0x10FFFF];
 
 	for (var i = 0; i < result.length; i++) {
-		equal (t.nextch (), result[i], "UTF-16 converted 0xD800 0xDFFF -> 0x103FF");
+		equal (t.nextch (), result[i], "Read UTF-16 surrogate #" + (i+1) + " as 0x" + result[i].toString(16));
 	}
 });
 //*/
