@@ -5,17 +5,17 @@ module ("Tokenizer");
 test ("Greedy matching 'a+++++a;'", function() {
 	var t = new Tokenizer(new Source ("a+++++a;"));
 	var result = [
-		"a",
-		Token.PUNC_INCREMENT.value,
-		Token.PUNC_INCREMENT.value,
-		Token.PUNC_PLUS.value,
-		"a",
-		Token.PUNC_SEMICOLON.value
+		Token.IDENTIFIER,
+		Token.PUNC_INCREMENT,
+		Token.PUNC_INCREMENT,
+		Token.PUNC_PLUS,
+		Token.IDENTIFIER,
+		Token.PUNC_SEMICOLON
 	];
 	
 	var tok, i = 0;
 	while (tok = t.consume ()) {
-		equal (tok.value, result[i++], "Test returned token");
+		equal (tok.type, result[i++], "Test returned token");
 	}
 });
 
@@ -31,11 +31,11 @@ test ("Unterminated comments don't tokenize", function() {
 	}, /Unterminated comment/, "Raises \"Unterminated comment\" error.");
 });
 
-test ("codes_to_string will create surrogate pairs", function () {
+test ("Tokenizer#stringify should create surrogate pairs", function () {
 	var source = [0x10000, 0x107FF, 0x10FFFF];
 	var result = ["\uD800\uDC00", "\uD801\uDFFF", "\uDBFF\uDFFF"];
 
 	for (var i = 0; i < source.length; i++) {
-		equal(Tokenizer.prototype.codes_to_string([source[i]]), result[i], "encode " + source[i].toString(16));
+		equal(Tokenizer.prototype.stringify ([source[i]]), result[i], "encode " + source[i].toString(16));
 	}
 });

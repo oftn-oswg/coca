@@ -111,7 +111,7 @@ Tokenizer.prototype.read_escape_sequence = function() {
 		while (i--) {
 			ch = this.source.nextch ();
 			if (!this.is_hexadecimal_digit (ch)) {
-				this.error ("Universal character name requires " + required + " hexadecimal digits");
+				throw new ParserError (this, "Universal character name requires " + required + " hexadecimal digits");
 			}
 			code = code << 4 | ch - ((ch >= 48 && ch <= 57) ? 48 : (ch >= 65 && c <= 70) ? 55 : 87);
 		}
@@ -130,7 +130,7 @@ Tokenizer.prototype.read_escape_sequence = function() {
 		}
 		return code;
 	default:
-		this.error ("Unknown escape sequence");
+		throw new ParserError (this, "Unknown escape sequence", ch);
 	}
 };
 
@@ -145,7 +145,7 @@ Tokenizer.prototype.read_string_literal = function(wide) {
 	loop:
 	for(;;) {
 		switch (this.source.peekch ()) {
-		case -1: this.error ("Unterminated string literal"); break;
+		case -1: throw new ParserError (this, "Unterminated string literal"); break;
 		case 34:
 			this.source.nextch ();
 			break loop;
@@ -158,24 +158,24 @@ Tokenizer.prototype.read_string_literal = function(wide) {
 		}
 	}
 
-	return new Token (Token.STRING_LITERAL, this.codes_to_string (characters), wide);
+	return new Token (Token.STRING_LITERAL, this.stringify (characters), wide);
 };
 
 Tokenizer.prototype.read_punctuator = function() {
-	var ch, punc, value;
+	var ch, punc, type;
 
 	punc = Token.punctuators;
-	value = null;
+	type = null;
 
 	while (ch = this.source.peekch (), punc = punc[ch]) {
-		if (punc.value) value = punc.value;
+		if (punc.value) type = punc.value;
 		this.source.nextch ();
 	}
 
-	if (!value) {
-		throw new Error("Unexpected ch " +ch);
+	if (!type) {
+		throw new ParserError (this, "Stray character in program", ch);
 	}
-	return value;
+	return new Token (type);
 };
 
 /* 6.4.2.1p2
@@ -192,9 +192,11 @@ Tokenizer.prototype.read_identifier = function() {
 	while (ch = this.source.peekch (), this.is_identifier_char (ch)) {
 		characters.push (this.source.nextch ());
 	}
+	name = this.stringify (characters);
 
-	name = this.codes_to_string (characters);
-	return Token.keywords[name] || new Token (Token.IDENTIFIER, name);
+	return Token.keywords[name] ?
+		new Token (Token.keywords[name]) :
+		new Token (Token.IDENTIFIER, name);
 };
 
 /* 6.4.9p2
@@ -224,7 +226,7 @@ Tokenizer.prototype.read_block_comment = function() {
 	loop:
 	for(;;) {
 		switch (this.source.peekch ()) {
-		case -1: this.error ("Unterminated comment");
+		case -1: throw new ParserError (this, "Unterminated comment");
 		case 47: if (term) { this.source.nextch (); break loop; }
 		case 42: term = true; break;
 		default: term = false; break;
@@ -235,7 +237,7 @@ Tokenizer.prototype.read_block_comment = function() {
 	return new Token (Token.WHITESPACE, 32); // 5.1.1.2p3
 };
 
-Tokenizer.prototype.codes_to_string = function(code_array) {
+Tokenizer.prototype.stringify = function(code_array) {
 	var arr = code_array.reduce(function (a, ch) {
 		if (ch >= 0x10000) {
 			var hi, lo;
@@ -249,12 +251,6 @@ Tokenizer.prototype.codes_to_string = function(code_array) {
 	}, []);
 	return String.fromCharCode.apply (null, arr);
 };
-
-Tokenizer.prototype.error = function(message) {
-	message = message + " on line " + this.source.line + ", col " + this.source.column;
-	throw new Error (message);
-};
-
 
 if (typeof module !== "undefined") {
 	module.exports = Tokenizer;

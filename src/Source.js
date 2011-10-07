@@ -1,14 +1,15 @@
 "use strict";
 
-var Source = function(string) {
+var Source = function(string, filename) {
 	this.contents = string;
 	this.cursor = 0;
 	this.line = 1;
 	this.column = 1;
 	this.in_directive = Preprocessor.NO_DIRECTIVE;
 
-	this.states = [];
+	this.filename = filename || "";
 
+	this.states = [];
 };
 
 
@@ -80,11 +81,11 @@ Source.prototype.nextch = function() {
 			this.cursor++;
 			this.column++;
 		} else {
-			throw new Error ("Invalid source input");
+			throw new ParserError (this, "Invalid source input");
 		}
 
 	} else if (ch >= 0xDC00 && ch <= 0xDFFF) {
-		throw new Error ("Invalid source input");
+		throw new ParserError (this, "Invalid source input");
 
 	} else switch (ch) {
 		case 92:
