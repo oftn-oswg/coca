@@ -50,8 +50,6 @@ Tokenizer.prototype.is_identifier_char   = function(ch) { return (ch >= 65 && ch
 /*
  * Gets the character code of the source at the specified index,
  * or zero if out-of-bounds.
- *
- * TODO: Pair unicode surrogate pairs
  */
 Tokenizer.prototype.ch = function(index) {
 	return this.source.charCodeAt (index) | 0;
