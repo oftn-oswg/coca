@@ -41,7 +41,17 @@ test ("Greedy matching 'a+++++a;'", function() {
 		equal (tok.value, result[i++], "Test returned token");
 	}
 });
+//*/
 
+///*
+test ("UTF-16 surrogates are converted", function() {
+	var t = new Tokenizer(null, "\uD800\uDC00\uD800\uDFFF\uDBFF\uDFFF");
+	var result = [0x10000,0x103FF,0x10FFFF];
+
+	for (var i = 0; i < result.length; i++) {
+		equal (t.nextch (), result[i], "UTF-16 converted 0xD800 0xDFFF -> 0x103FF");
+	}
+});
 //*/
 /*
 test ("Random test", function() {

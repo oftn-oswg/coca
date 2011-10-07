@@ -108,7 +108,17 @@ Tokenizer.prototype.nextch = function() {
 	this.cursor++;
 	this.column++;
 
-	switch (ch) {
+	if (ch >= 0xD800 && ch <= 0xDBFF) {
+		/* UTF-16 surrogate pair */
+		var lo = this.ch (this.cursor);
+		if (lo >= 0xDC00 && lo <= 0xDFFF) {
+			ch = ((ch - 0xD800) << 10) + (lo - 0xDC00) + 0x10000;
+			this.cursor++;
+			this.column++;
+		} else {
+			this.error ("Invalid surrogates in input");
+		}
+	} else switch (ch) {
 	case 92:
 		/* backslash */
 		switch (this.ch (this.cursor)) {
