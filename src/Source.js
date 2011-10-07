@@ -84,7 +84,6 @@ Source.prototype.nextch = function() {
 		if (lo >= 0xDC00 && lo <= 0xDFFF) {
 			ch = ((ch - 0xD800) << 10) + (lo - 0xDC00) + 0x10000;
 			this.cursor++;
-			this.column++;
 		} else {
 			throw new ParserError (this, "Invalid source input");
 		}

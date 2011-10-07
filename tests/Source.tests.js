@@ -39,3 +39,14 @@ test ("UTF-16 surrogates are converted", function() {
 test ("Invalid surrogates throw error", function() {
 	source_error ("\uDC00\uD800", /Invalid source input/, "Reversed surrogates should throw error");
 });
+
+test ("Surrogates advance column number appropriately", function() {
+	var source = new Source ("\uD800\uDC00");
+	var initialCursor = source.cursor;
+	var initialColumn = source.column;
+
+	source.nextch ();
+
+	equal (source.cursor - initialCursor, 2, "Cursor is advanced by two bytes");
+	equal (source.column - initialColumn, 1, "Column is advanced only once");
+});
