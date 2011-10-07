@@ -36,11 +36,16 @@ var Tokenizer = function(options, string) {
 	this.states = [];
 };
 
-Tokenizer.prototype.is_digit           = function(ch) { return ch >= 48 && ch <= 57; /* [0-9] */ };
-Tokenizer.prototype.is_whitespace      = function(ch) { return ch === 32 || (ch >= 9 && ch <= 12); };
-Tokenizer.prototype.is_identifier_char = function(ch) { return (ch >= 65 && ch <= 90) ||            /* [A-Z] */
-                                                               (ch >= 97 && ch <= 122) ||           /* [a-z] */
-                                                               (ch >= 48 && ch <= 57) || ch === 95; /* [0-9_] */};
+
+Tokenizer.prototype.is_digit             = function(ch) { return ch >= 48 && ch <= 57; /* [0-9] */ };
+Tokenizer.prototype.is_whitespace        = function(ch) { return ch === 32 || (ch >= 9 && ch <= 12); };
+Tokenizer.prototype.is_octal_digit       = function(ch) { return ch >= 48 && ch <= 55; /* [0-7] */ };
+Tokenizer.prototype.is_hexadecimal_digit = function(ch) { return (ch >= 48 && ch <= 57) || /* [0-9] */
+                                                                 (ch >= 65 && ch <= 70) || /* [A-F] */
+                                                                 (ch >= 97 && ch <= 102);  /* [a-f] */ };
+Tokenizer.prototype.is_identifier_char   = function(ch) { return (ch >= 65 && ch <= 90) ||            /* [A-Z] */
+                                                                 (ch >= 97 && ch <= 122) ||           /* [a-z] */
+                                                                 (ch >= 48 && ch <= 57) || ch === 95; /* [0-9_] */};
 
 /*
  * Gets the character code of the source at the specified index,
@@ -182,6 +187,75 @@ Tokenizer.prototype.lookahead = function() {
 	return token;
 };
 
+Tokenizer.prototype.read_escape_sequence = function() {
+	var ch, code = 0, max;
+
+	ch = this.nextch ();
+	switch (ch) {
+	case 34: case 39: case 63: case 92: return ch; // Quotes, question mark, backslash
+	case 48: case 49: case 50: case 51: case 52: case 53: case 54: case 55: /* Octals */
+		max = 3;
+		while (max--) {
+			code = code << 3 | (ch - 48);
+			if (!this.is_octal_digit (this.peekch ())) break;
+			ch = this.nextch ();
+		}
+		return code;
+	case 85: case 117:
+		/* \U, \u: Universal character names */
+		var required = (ch === 85) ? 8 : 4, i = required;
+		while (i--) {
+			ch = this.nextch ();
+			if (!this.is_hexadecimal_digit (ch)) {
+				this.error ("Universal character name requires " + required + " hexadecimal digits");
+			}
+			code = code << 4 | ch - ((ch >= 48 && ch <= 57) ? 48 : (ch >= 65 && c <= 70) ? 55 : 87);
+		}
+		return code;
+	case 97: return 7;   /* \a: Bell character */
+	case 98: return 8;   /* \b: Backspace character */
+	case 102: return 12; /* \f: Form feed character */
+	case 110: return 10; /* \n: Newline character */
+	case 114: return 13; /* \r: Carriage return */
+	case 116: return 9;  /* \t: Tab character */
+	case 118: return 11; /* \v: Vertical tab character */
+	case 120:            /* \x: Hexadecimal magic */
+		while (ch = this.peekch (), this.is_hexadecimal_digit (ch)) {
+			code = code << 4 | ch - ((ch >= 48 && ch <= 57) ? 48 : (ch >= 65 && ch <= 70) ? 55 : 87);
+			this.nextch ();
+		}
+		return code;
+	default:
+		this.error ("Unknown escape sequence");
+	}
+};
+
+
+Tokenizer.prototype.read_string_literal = function(wide) {
+	var characters, ch;
+
+	this.nextch (); // Skip the starting quote
+	characters = [];
+	wide = wide || false;
+
+	loop:
+	while (ch = this.peekch ()) {
+		switch (ch) {
+		case 0: this.error ("Unterminated string literal"); break;
+		case 34:
+			this.nextch ();
+			break loop;
+		case 92:
+			this.nextch ();
+			characters.push (this.read_escape_sequence ());
+			break;
+		default:
+			characters.push (this.nextch ());
+		}
+	}
+
+	return new Token (Token.STRING_LITERAL, this.codes_to_string (characters), wide);
+};
 
 Tokenizer.prototype.read_punctuator = function() {
 	var ch, punc, value;
@@ -262,11 +336,8 @@ Tokenizer.prototype.codes_to_string = function(code_array) {
 };
 
 Tokenizer.prototype.error = function(message) {
-	throw new SyntaxError (message + " on line " + this.line + ", col " + this.column);
-};
-Tokenizer.prototype.warn = Tokenizer.prototype.error;
-Tokenizer.prototype.log = function(message) {
-	console.log (message);
+	message = message + " on line " + this.line + ", col " + this.column;
+	throw new Error (message);
 };
 
 Tokenizer.prototype.iterate = function() {
@@ -301,6 +372,7 @@ Token.KEYWORD    = 1 << 0;
 Token.IDENTIFIER = 1 << 1;
 Token.WHITESPACE = 1 << 2;
 Token.PUNCTUATOR = 1 << 3;
+Token.STRING_LITERAL = 1 << 4;
 
 /* Token keywords (6.4.1) */
 Token.keywords = {};
