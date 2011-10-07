@@ -12,7 +12,8 @@ test ("Ending backslash removal and line number", function() {
 	var columns = [1, 2, 1, 2, 3, 4, 2, 3, 4]; // [5] -> 1
 
 	var ch, cursor = 0, line = 1, column = 1;
-	while ((ch = t.nextch())) {
+	while (ch = t.nextch(), ch != -1) {
+		console.log("#1 " + ch);
 		equal (String.fromCharCode(ch), result.charAt(cursor), "Test character @ "+cursor);
 		equal (line, lines[cursor], "Test line number @ "+cursor);
 		equal (column, columns[cursor], "Test column number @ "+cursor);
@@ -38,10 +39,38 @@ test ("Greedy matching 'a+++++a;'", function() {
 	
 	var tok, i = 0;
 	while (tok = t.consume ()) {
+		console.log("#2 " + tok);
 		equal (tok.value, result[i++], "Test returned token");
 	}
 });
+//*/
 
+///*
+test ("UTF-16 surrogates are converted", function() {
+	var t = new Tokenizer(null, "\uD800\uDC00\uD800\uDFFF\uDBFF\uDFFF");
+	var result = [0x10000,0x103FF,0x10FFFF];
+
+	for (var i = 0; i < result.length; i++) {
+		console.log("#3 " + t.peekch ());
+		equal (t.nextch (), result[i], "Read UTF-16 surrogate #" + (i+1) + " as 0x" + result[i].toString(16));
+	}
+});
+//*/
+
+///*
+test ("Unterminated string literals don't tokenize", function() {
+	raises (function () {
+		new Tokenizer(null, "\"hello world").consume();
+	}, /Unterminated string literal/, "Raises \"Unterminated string literal\" error.");
+});
+//*/
+
+///*
+test ("Unterminated comments don't tokenize", function() {
+	raises (function () {
+		new Tokenizer(null, "/*").consume();
+	}, /Unterminated comment/, "Raises \"Unterminated comment\" error.");
+});
 //*/
 /*
 test ("Random test", function() {

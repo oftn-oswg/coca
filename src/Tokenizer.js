@@ -51,11 +51,13 @@ Tokenizer.prototype.is_identifier_char   = function(ch) { return (ch >= 65 && ch
 /*
  * Gets the character code of the source at the specified index,
  * or zero if out-of-bounds.
- *
- * TODO: Pair unicode surrogate pairs
  */
 Tokenizer.prototype.ch = function(index) {
-	return this.source.charCodeAt (index) | 0;
+	if (index < this.source.length) {
+		return this.source.charCodeAt (index) | 0;
+	} else {
+		return -1;
+	}
 };
 
 /* FIXME: I hate these functions. */
@@ -109,7 +111,17 @@ Tokenizer.prototype.nextch = function() {
 	this.cursor++;
 	this.column++;
 
-	switch (ch) {
+	if (ch >= 0xD800 && ch <= 0xDBFF) {
+		/* UTF-16 surrogate pair */
+		var lo = this.ch (this.cursor);
+		if (lo >= 0xDC00 && lo <= 0xDFFF) {
+			ch = ((ch - 0xD800) << 10) + (lo - 0xDC00) + 0x10000;
+			this.cursor++;
+			this.column++;
+		} else {
+			this.error ("Invalid surrogates in input");
+		}
+	} else switch (ch) {
 	case 92:
 		/* backslash */
 		switch (this.ch (this.cursor)) {
@@ -169,7 +181,7 @@ Tokenizer.prototype.consume = function() {
 
 	if (ch === 34) /* double-quote */ return this.read_string_literal ();
 	if (ch === 39) /* single-quote */ return this.read_character_constant ();
-	if (ch === 0)  /* end-of-file  */ return null;
+	if (ch === -1) /* end-of-file  */ return null;
 
 	if (ch === 47) /* forward slash */ {
 		this.save ();
@@ -243,16 +255,16 @@ Tokenizer.prototype.read_escape_sequence = function() {
 
 
 Tokenizer.prototype.read_string_literal = function(wide) {
-	var characters, ch;
+	var characters;
 
 	this.nextch (); // Skip the starting quote
 	characters = [];
 	wide = wide || false;
 
 	loop:
-	while (ch = this.peekch ()) {
-		switch (ch) {
-		case 0: this.error ("Unterminated string literal"); break;
+	for(;;) {
+		switch (this.peekch ()) {
+		case -1: this.error ("Unterminated string literal"); break;
 		case 34:
 			this.nextch ();
 			break loop;
@@ -313,7 +325,7 @@ Tokenizer.prototype.read_identifier = function() {
 Tokenizer.prototype.read_bcpl_comment = function() {
 	var ch;
 
-	while (ch = this.peekch (), ch !== 10 && ch !== 0)
+	while (ch = this.peekch (), ch !== 10 && ch !== -1)
 		/* while ch is not a newline */
 		this.nextch ();
 
@@ -326,12 +338,12 @@ Tokenizer.prototype.read_bcpl_comment = function() {
 // multibyte characters and to find the characters */ that terminate it.71)
 
 Tokenizer.prototype.read_block_comment = function() {
-	var ch, slash, term = false;
+	var slash, term = false;
 
 	loop:
-	while (ch = this.peekch ()) {
-		switch (ch) {
-		case 0: this.error ("Unterminated comment");
+	for(;;) {
+		switch (this.peekch ()) {
+		case -1: this.error ("Unterminated comment");
 		case 47: if (term) { this.nextch (); break loop; }
 		case 42: term = true; break;
 		default: term = false; break;
