@@ -32,6 +32,7 @@ var Tokenizer = function(options, string) {
 	this.cursor = 0;
 	this.line = 1;
 	this.column = 1;
+	this.in_directive = Preprocessor.NO_DIRECTIVE;
 
 	this.states = [];
 };
@@ -57,18 +58,17 @@ Tokenizer.prototype.ch = function(index) {
 	return this.source.charCodeAt (index) | 0;
 };
 
-/* Saves the current cursor, line, and column so it can be restored later */
 /* FIXME: I hate these functions. */
 Tokenizer.prototype.save = function() {
 	this.states.push ({
 		cursor: this.cursor,
 		line: this.line,
-		column: this.column
+		column: this.column,
+		in_directive: this.in_directive
 	});
 };
 
 /* Restores the cursor, line, and column of a previously saved state */
-/* FIXME: Skewer me with a rake. */
 Tokenizer.prototype.restore = function() {
 	var states = this.states;
 	if (!states.length) {
@@ -79,6 +79,7 @@ Tokenizer.prototype.restore = function() {
 	this.cursor = obj.cursor;
 	this.line = obj.line;
 	this.column = obj.column;
+	this.in_directive = obj.in_directive;
 };
 
 /*
@@ -154,14 +155,24 @@ Tokenizer.prototype.consume = function() {
 	var ch = this.peekch ();
 
 	if (this.is_whitespace (ch))      return new Token (Token.WHITESPACE, this.nextch ());
+
+	if (this.in_directive === Preprocessor.INCLUDE) {
+		if (ch === 60) /* is-less-than */ return this.read_header_name (false);
+	}
+	if (this.in_directive !== Preprocessor.NO_DIRECTIVE) {
+		if (ch === 46 ||
+		    this.is_digit (ch))           return this.read_pp_number ();
+	}
+
 	if (this.is_digit (ch))           return this.read_number ();
 	if (this.is_identifier_char (ch)) return this.read_identifier ();
+
 	if (ch === 34) /* double-quote */ return this.read_string_literal ();
 	if (ch === 39) /* single-quote */ return this.read_character_constant ();
 	if (ch === 0)  /* end-of-file  */ return null;
 
 	if (ch === 47) /* forward slash */ {
-		this.save (); /* FIXME: I hate this. */
+		this.save ();
 		this.nextch ();
 		switch (this.nextch ()) {
 		case 47: return this.read_bcpl_comment ();
