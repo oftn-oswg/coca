@@ -1,5 +1,9 @@
 "use strict";
 
+if (typeof require === "function") {
+	var Token = require("./Token");
+}
+
 var Preprocessor = function(tokenizer) {
 	this.tokenizer = tokenizer;
 
@@ -152,3 +156,7 @@ Preprocessor.prototype.initialize_macros = function() {
 
 
 };
+
+if (typeof module === "object") {
+	module.exports = Preprocessor;
+}

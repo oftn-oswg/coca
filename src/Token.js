@@ -98,6 +98,6 @@ Token.punctuators = {
 
 
 
-if (typeof module !== "undefined") {
+if (typeof module === "object") {
 	module.exports = Token;
 }

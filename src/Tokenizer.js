@@ -25,6 +25,10 @@
  *     each non-white-space character that cannot be one of the above
  */
 
+if (typeof require === "function") {
+	var Token        = require ("./Token");
+	var Preprocessor = require ("./Preprocessor");
+}
 
 var Tokenizer = function(source) {
 	this.source = source;
@@ -252,6 +256,6 @@ Tokenizer.prototype.stringify = function(code_array) {
 	return String.fromCharCode.apply (null, arr);
 };
 
-if (typeof module !== "undefined") {
+if (typeof module === "object") {
 	module.exports = Tokenizer;
 }

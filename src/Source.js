@@ -1,5 +1,10 @@
 "use strict";
 
+if (typeof require === "function") {
+	// we're running under CommonJS
+	var Preprocessor = require("./Preprocessor");
+}
+
 var Source = function(string, filename) {
 	this.contents = string;
 	this.cursor = 0;
@@ -123,3 +128,7 @@ Source.prototype.peekch = function() {
 
 	return ch;
 };
+
+if (typeof module === "object") {
+	module.exports = Source;
+}
