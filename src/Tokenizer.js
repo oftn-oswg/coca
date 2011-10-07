@@ -355,7 +355,18 @@ Tokenizer.prototype.read_block_comment = function() {
 };
 
 Tokenizer.prototype.codes_to_string = function(code_array) {
-	return String.fromCharCode.apply (null, code_array);
+	var arr = code_array.reduce(function (a, ch) {
+		if (ch >= 0x10000) {
+			var hi, lo;
+			hi = ((ch - 0x10000) >> 10)    + 0xD800;
+			lo = ((ch - 0x10000) &  0x3FF) + 0xDC00;
+			a.push (hi); a.push (lo);
+		} else {
+			a.push (ch);
+		}
+		return a;
+	}, []);
+	return String.fromCharCode.apply (null, arr);
 };
 
 Tokenizer.prototype.error = function(message) {

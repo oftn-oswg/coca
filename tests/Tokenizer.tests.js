@@ -72,6 +72,18 @@ test ("Unterminated comments don't tokenize", function() {
 	}, /Unterminated comment/, "Raises \"Unterminated comment\" error.");
 });
 //*/
+
+///*
+test ("codes_to_string will create surrogate pairs", function () {
+	var source = [0x10000, 0x107FF, 0x10FFFF];
+	var t = new Tokenizer(null, "");
+	var result = ["\uD800\uDC00", "\uD801\uDFFF", "\uDBFF\uDFFF"];
+
+	for (var i = 0; i < source.length; i++) {
+		equal(t.codes_to_string([source[i]]), result[i], "encode " + source[i].toString(16));
+	}
+});
+//*/
 /*
 test ("Random test", function() {
 	var t = new Tokenizer(null, "#include <stdio.h>\nint main(int argc, char *argv[]) {\n\twhile (argc--) {\n\t\tputs (argv[argc]);\n\t}\n\treturn EXIT_SUCCESS;\n}\n"), tok;
