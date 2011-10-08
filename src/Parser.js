@@ -1,3 +1,6 @@
+"use strict";
+
+var Parser = function() {};
 
 var ParserError = function ParserError(self, message) {
 	this.message = message;
@@ -10,3 +13,7 @@ ParserError.prototype.toString = function() {
 	return this.name + ": " + this.message;
 };
 
+if (typeof module === "object") {
+	Parser.ParserError = ParserError;
+	module.exports = Parser;
+}

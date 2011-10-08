@@ -1,5 +1,10 @@
 "use strict";
 
+if (typeof require === "function") {
+	var Parser = require ("./Parser");
+	var ParserError = Parser.ParserError;
+}
+
 var Token = function(type, value) {
 	this.type = type;
 	this.value = value;
@@ -13,30 +18,25 @@ Token.prototype.must_be = function(type, value) {
 	}
 };
 
-/* Token types */
-(function() {
-	var types = [ "WHITESPACE", "IDENTIFIER", "STRING_LITERAL", "PUNC_ARROW", "PUNC_ASS", "PUNC_ASS_BITWISE_LEFT", "PUNC_ASS_BITWISE_OR", "PUNC_ASS_BITWISE_RIGHT", "PUNC_ASS_BITWISE_XOR", "PUNC_ASS_BITWISE_AND", "PUNC_ASS_DIV", "PUNC_ASS_MINUS", "PUNC_ASS_MOD", "PUNC_ASS_MUL", "PUNC_ASS_PLUS", "PUNC_ASTERISK", "PUNC_BITWISE_AND", "PUNC_BITWISE_LEFT", "PUNC_BITWISE_NOT", "PUNC_BITWISE_OR", "PUNC_BITWISE_RIGHT", "PUNC_BITWISE_XOR", "PUNC_BRAC_CLOSE", "PUNC_BRAC_OPEN", "PUNC_COMMA", "PUNC_CURLY_CLOSE", "PUNC_CURLY_OPEN", "PUNC_DECREMENT", "PUNC_DIV", "PUNC_DOT", "PUNC_ELLIPSIS", "PUNC_HASH", "PUNC_HASH_DOUBLE", "PUNC_INCREMENT", "PUNC_IS_EQUAL", "PUNC_IS_GT", "PUNC_IS_GTE", "PUNC_IS_LT", "PUNC_IS_LTE", "PUNC_IS_NOT", "PUNC_LOGICAL_AND", "PUNC_LOGICAL_NOT", "PUNC_LOGICAL_OR", "PUNC_MINUS", "PUNC_MOD", "PUNC_PAREN_CLOSE", "PUNC_PAREN_OPEN", "PUNC_PLUS", "PUNC_SEMICOLON", "PUNC_TERNARY", "PUNC_TERNARY_COLON"];
-
-	for (var i = 0, len = types.length; i < len; i++) {
-		Token[types[i]] = i;
-	}
-})();
-
-
-/* Token keywords (6.4.1) */
 Token.keywords = {};
 
-(function(Token) {
-	var keywords, index;
+/* Token types */
+(function() {
+	var index = 0;
+	var types = ["WHITESPACE", "IDENTIFIER", "STRING_LITERAL", "PUNC_ARROW", "PUNC_ASS", "PUNC_ASS_BITWISE_LEFT", "PUNC_ASS_BITWISE_OR", "PUNC_ASS_BITWISE_RIGHT", "PUNC_ASS_BITWISE_XOR", "PUNC_ASS_BITWISE_AND", "PUNC_ASS_DIV", "PUNC_ASS_MINUS", "PUNC_ASS_MOD", "PUNC_ASS_MUL", "PUNC_ASS_PLUS", "PUNC_ASTERISK", "PUNC_BITWISE_AND", "PUNC_BITWISE_LEFT", "PUNC_BITWISE_NOT", "PUNC_BITWISE_OR", "PUNC_BITWISE_RIGHT", "PUNC_BITWISE_XOR", "PUNC_BRAC_CLOSE", "PUNC_BRAC_OPEN", "PUNC_COMMA", "PUNC_CURLY_CLOSE", "PUNC_CURLY_OPEN", "PUNC_DECREMENT", "PUNC_DIV", "PUNC_DOT", "PUNC_ELLIPSIS", "PUNC_HASH", "PUNC_HASH_DOUBLE", "PUNC_INCREMENT", "PUNC_IS_EQUAL", "PUNC_IS_GT", "PUNC_IS_GTE", "PUNC_IS_LT", "PUNC_IS_LTE", "PUNC_IS_NOT", "PUNC_LOGICAL_AND", "PUNC_LOGICAL_NOT", "PUNC_LOGICAL_OR", "PUNC_MINUS", "PUNC_MOD", "PUNC_PAREN_CLOSE", "PUNC_PAREN_OPEN", "PUNC_PLUS", "PUNC_SEMICOLON", "PUNC_TERNARY", "PUNC_TERNARY_COLON"];
+	var keywords = ["auto","break","case","char","const","continue","default","do","double","else","enum","extern","float","for","goto","if","inline","int","long","register","restrict","return","short","signed","sizeof","static","struct","switch","typedef","union","unsigned","void","volatile","while","_Bool","_Complex","_Imaginary"];
+	var types_len = types.length;
+	var keywords_len = keywords.length;
 
-	keywords = ["auto","break","case","char","const","continue","default","do","double","else","enum","extern","float","for","goto","if","inline","int","long","register","restrict","return","short","signed","sizeof","static","struct","switch","typedef","union","unsigned","void","volatile","while","_Bool","_Complex","_Imaginary"];
-	index = keywords.length;
-
-	for (var i = 0, len = keywords.length; i < len; i++) {
-		Token["KEYWORD_" + keywords[index]] =
-			Token.keywords[keywords[index]] = i+1;
+	for (var i = 0; i < types_len; i++) {
+		Token[types[i]] = index++;
 	}
-})(Token);
+
+	for (var i = 0; i < keywords_len; i++) {
+		Token["KEYWORD_" + keywords[i]] =
+			Token.keywords[keywords[i]] = index++;
+	}
+})();
 
 
 Token.punctuators = {

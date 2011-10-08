@@ -1,8 +1,9 @@
 "use strict";
 
 if (typeof require === "function") {
-	// we're running under CommonJS
 	var Preprocessor = require("./Preprocessor");
+	var Parser       = require ("./Parser");
+	var ParserError  = Parser.ParserError;
 }
 
 var Source = function(string, filename) {

@@ -1,5 +1,12 @@
 "use strict";
 
+if (typeof require === "function") {
+	var Token        = require ("./Token");
+	var Preprocessor = require ("./Preprocessor");
+	var Parser       = require ("./Parser");
+	var ParserError  = Parser.ParserError;
+}
+
 /* Tokenizer
  * ---------
  * options -> Global options
@@ -24,12 +31,6 @@
  *     punctuator
  *     each non-white-space character that cannot be one of the above
  */
-
-if (typeof require === "function") {
-	var Token        = require ("./Token");
-	var Preprocessor = require ("./Preprocessor");
-}
-
 var Tokenizer = function(source) {
 	this.source = source;
 };
