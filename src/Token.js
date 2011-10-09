@@ -17,6 +17,9 @@ Token.prototype.toString = function() {
 		return String.fromCharCode (this.value);
 	case Token.IDENTIFIER:
 		return this.value;
+	case Token.CHAR_CONST:
+		return (this.extra ? "L'" : "'") +
+			String.fromCharCode (this.value).replace (/'\\/g, "\\$&") + "'";
 	case Token.STRING_LITERAL:
 		return (this.extra ? "L\"" : "\"") +
 			this.value.replace (/"\\/g, "\\$&") + "\"";
@@ -48,6 +51,7 @@ Token.punctuators = {};
 	/* Add tokens which aren't automated, give them unique ids */
 	Token.WHITESPACE = index++;
 	Token.IDENTIFIER = index++;
+	Token.CHAR_CONST = index++;
 	Token.STRING_LITERAL = index++;
 
 	/* Add keywords */

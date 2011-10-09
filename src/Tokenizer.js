@@ -65,8 +65,8 @@ Tokenizer.prototype.consume = function() {
 	if (this.is_digit (ch))           return this.read_number ();
 	if (this.is_identifier_char (ch)) return this.read_identifier ();
 
-	if (ch === 34) /* double-quote */ return this.read_string_literal ();
-	if (ch === 39) /* single-quote */ return this.read_character_constant ();
+	if (ch === 34) /* double-quote */ return this.read_string_literal (false);
+	if (ch === 39) /* single-quote */ return this.read_character_constant (false);
 	if (ch === -1) /* end-of-file  */ return null;
 
 	if (ch === 47) /* forward slash */ {
@@ -140,12 +140,34 @@ Tokenizer.prototype.read_escape_sequence = function() {
 };
 
 
+Tokenizer.prototype.read_character_constant = function(wide) {
+	var character, ch;
+
+	this.source.nextch (); // Skip the starting quote
+
+	character = this.source.nextch ();
+	switch (character) {
+	case 92: /* backslash */
+		character = this.read_escape_sequence ();
+		break;
+	case -1: /* end of file */
+		throw new ParserError (this, "Unterminated character constant");
+	}
+
+	ch = this.source.nextch ();
+	if (ch !== 39) /* single-quote */ {
+		throw new ParserError (this, "Too many characters in character constant");
+	}
+
+	return new Token (Token.CHAR_CONST, character, wide);
+};
+
+
 Tokenizer.prototype.read_string_literal = function(wide) {
 	var characters;
 
 	this.source.nextch (); // Skip the starting quote
 	characters = [];
-	wide = wide || false;
 
 	loop:
 	for(;;) {
