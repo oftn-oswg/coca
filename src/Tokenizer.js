@@ -155,7 +155,11 @@ Tokenizer.prototype.read_character_constant = function(wide) {
 	}
 
 	ch = this.source.nextch ();
-	if (ch !== 39) /* single-quote */ {
+	switch (ch) {
+	case 39: break;
+	case -1:
+		throw new ParserError (this, "Unterminated character constant");
+	default:
 		throw new ParserError (this, "Too many characters in character constant");
 	}
 

@@ -39,3 +39,25 @@ test ("Tokenizer#stringify should create surrogate pairs", function () {
 		equal(Tokenizer.prototype.stringify ([source[i]]), result[i], "encode " + source[i].toString(16));
 	}
 });
+
+test ("Character constants lexing", function() {
+	var tokenizer = new Tokenizer(new Source("'a'"));
+	var token = tokenizer.consume ();
+	equal (token.type, Token.CHAR_CONST, "Token type is character constant");
+	equal (token.value, 97, "Token value is 'a'");
+
+	raises (function() {
+		var tokenizer = new Tokenizer (new Source ("'"));
+		tokenizer.consume ();
+	}, /Unterminated character constant/, "<< ' >> raises unterminated constant error");
+
+	raises (function() {
+		var tokenizer = new Tokenizer (new Source ("'f"));
+		tokenizer.consume ();
+	}, /Unterminated character constant/, "<< 'f >> raises unterminated constant error");
+
+	raises (function() {
+		var tokenizer = new Tokenizer (new Source ("'good swagg'"));
+		tokenizer.consume ();
+	}, /Too many characters/, "<< 'foo' >> raises too many characters error");
+});
