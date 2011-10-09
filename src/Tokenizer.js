@@ -257,6 +257,17 @@ Tokenizer.prototype.stringify = function(code_array) {
 	return String.fromCharCode.apply (null, arr);
 };
 
+Tokenizer.prototype.render = function() {
+	var token, result;
+
+	result = [];
+	while (token = this.consume ()) {
+		result.push (token.toString());
+	}
+
+	return result.join ("");
+};
+
 if (typeof module === "object") {
 	module.exports = Tokenizer;
 }
