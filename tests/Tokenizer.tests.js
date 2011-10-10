@@ -19,10 +19,22 @@ test ("Greedy matching 'a+++++a;'", function() {
 	}
 });
 
-test ("Unterminated string literals don't tokenize", function() {
+test ("String literals lexing", function() {
+	var tokenizer = new Tokenizer (new Source ("\"hello world\" L\"this is a wide string\""));
+	var token     = tokenizer.consume ();
+	equal (token.type, Token.STRING_LITERAL, "<< \"hello world\" >> type is string literal.");
+	equal (token.value, "hello world", "<< \"hello world\" >> value is \"hello world\"");
+	equal (token.extra, false, "<< \"hello world\" >> is not wide.");
+
+	while ((token = tokenizer.consume ()).type == Token.WHITESPACE);
+
+	equal (token.type, Token.STRING_LITERAL, "<< L\"this is a wide string\" >> type is string literal.");
+	equal (token.value, "this is a wide string", "<< L\"this is a wide string\" >> value is \"this is a wide string\"");
+	equal (token.extra, true, "<< L\"this is a wide string\" >> is wide.");
+
 	raises (function () {
-		new Tokenizer(new Source ("\"hello world")).consume();
-	}, /Unterminated string literal/, "Raises \"Unterminated string literal\" error.");
+		new Tokenizer (new Source ("\"hello world")).consume();
+	}, /Unterminated string literal/, "<< \"hello world >> raises \"Unterminated string literal\" error.");
 });
 
 test ("Unterminated comments don't tokenize", function() {
