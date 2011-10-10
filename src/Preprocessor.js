@@ -7,7 +7,11 @@ if (typeof require === "function") {
 var Preprocessor = function(tokenizer) {
 	this.tokenizer = tokenizer;
 
-	this.macros = {};
+	this.macros = {
+		user: {},
+		special: {},
+		constant: {},
+	};
 	this.initialize_macros ();
 };
 
@@ -20,15 +24,17 @@ Preprocessor.prototype.consume = function() {
 
 	column = this.tokenizer.source.column;
 
-	if (column === 1) {
+	for (;;) {
+		if (column !== 1) { break; }
+		
 		token = this.tokenizer.lookahead ();
-		if (token === Token.PUNC_HASH) {
+		if (token && token.type === Token.PUNC_HASH) {
 			// This is a preprocessor directive
 			this.handle_directive ();
 		}
 	}
 
-	return this.next_non_whitespace_token ();
+	return this.tokenizer.consume ();
 
 };
 
@@ -56,33 +62,44 @@ Preprocessor.prototype.handle_directive = function() {
 	var token;
 
 	token = this.tokenizer.consume ();
-	token.must_be (Token.PUNC_HASH);
+	token.must_be (this, Token.PUNC_HASH);
 
-	this.skip_whitespace ();
+	this.skip_line_whitespace ();
 
 	token = this.tokenizer.lookahead ();
-	token.must_be (Token.IDENTIFIER);
+	token.must_be (this, Token.IDENTIFIER);
 	
 	switch (token.value) {
-	case "define":
-		this.handle_define ();
-	default:
-		throw new ParserError (this, "Unknown directive", token.value);
+	case "define": this.handle_define (); break;
+	default: throw new ParserError (this, "Unknown directive", token.value);
 	}
+
+	token = this.tokenizer.consume ();
+	token.must_be (this, Token.WHITESPACE, 10);
 };
 
 
 Preprocessor.prototype.handle_define = function() {
-	var token;
-	
-	token = this.tokenizer.consume ();
-	token.must_be (Token.IDENTIFIER, "define");
-
-	this.skip_whitespace ();
+	var token, macro_name, macro_tokens = [];
 
 	token = this.tokenizer.consume ();
-	token.must_be (Token.IDENTIFIER);
+	token.must_be (this, Token.IDENTIFIER, "define");
 
+	this.skip_line_whitespace ();
+
+	token = this.tokenizer.consume ();
+	token.must_be (this, Token.IDENTIFIER);
+	macro_name = token.value;
+
+	this.skip_line_whitespace ();
+
+	while (token = this.tokenizer.lookahead()) {
+		if (token.type === Token.WHITESPACE && token.value === 10) break;
+
+		macro_tokens.push (this.tokenizer.consume ());
+	}
+
+	this.macros.user[macro_name] = macro_tokens;
 };
 
 /* 6.10p5
@@ -92,7 +109,8 @@ Preprocessor.prototype.handle_define = function() {
  * spaces that have replaced comments or possibly other white-space characters in
  * translation phase 3).
  */
-Preprocessor.prototype.skip_whitespace = function() {
+Preprocessor.prototype.skip_line_whitespace = function() {
+	var token;
 	while (token = this.tokenizer.lookahead (), token.type === Token.WHITESPACE) {
 		if (token.value !== 32 && token.value !== 9) break;
 		this.tokenizer.consume ();
@@ -113,48 +131,36 @@ Preprocessor.prototype.next_non_whitespace_token = function() {
 
 
 Preprocessor.prototype.initialize_macros = function() {
-	this.date = new Date();
+	var constants, months, date_obj, month, year, date, hour, mins, secs;
+	
+	constants = this.macros.constant;
 
-	var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-	var month = date.getMonth ();
-	var year = date.getFullYear ();
-	var date = date.getDate ();
-	var hour = date.getHours ();
-	var secs = date.getSeconds ();
+	date_obj = new Date;
+	month = date_obj.getMonth ();
+	year = date_obj.getFullYear ();
+	date = date_obj.getDate ();
+	hour = date_obj.getHours ();
+	mins = date_obj.getMinutes ();
+	secs = date_obj.getSeconds ();
 
-	// TODO: These are constant and cannot be changed, except for __FILE__ and  __LINE__
-
-	this.macros["__DATE__"] = [
+	constants["__DATE__"] = [
 		new Token (Token.STRING_LITERAL,
-			months[month] + " " + (date < 10 ? " " + date : date) + " " + year)];
+			["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][month] +
+			" " + (date < 10 ? " " + date : date) + " " + year, false)];
 
-	this.macros["__FILE__"] = [
-		new Token (Token.STRING_LITERAL,
-			this.tokenizer.source.filename)];
-
-	this.macros["__LINE__"] = [/* TODO: Create integer constant token */]; // this.tokenizer.source.line
-
-	this.macros["__STDC__"] = []; // Integer constant 1
-
-	this.macros["__STDC_HOSTED__"] = []; // Integer constant 1
-
-	this.macros["__STDC_MB_MIGHT_NEQ_WC__"] = []; // Integer constant 1
-
-	this.macros["__STDC_VERSION__"] = []; // Integer constant 199901L
-
-	this.macros["__TIME__"] = [
+	constants["__TIME__"] = [
 		new Token (Token.STRING_LITERAL,
 			(hour < 10 ? "0" + hour : hour) + ":" +
 			(mins < 10 ? "0" + mins : mins) + ":" +
-			(secs < 10 ? "0" + secs : secs))];
+			(secs < 10 ? "0" + secs : secs), false)];
 
-	this.macros["__STDC_IEC_559__"] = []; // Integer constant 1
-
-	this.macros["__STDC_IEC_559_COMPLEX__"] = []; // Integer constant 1
-
-	this.macros["__STDC_ISO_10646__"] = []; // Figure out what the hell this is set to
-
-
+	constants["__STDC__"] = []; // Integer constant 1
+	constants["__STDC_HOSTED__"] = []; // Integer constant 1
+	constants["__STDC_MB_MIGHT_NEQ_WC__"] = []; // Integer constant 1
+	constants["__STDC_VERSION__"] = []; // Integer constant 199901L
+	constants["__STDC_IEC_559__"] = []; // Integer constant 1
+	constants["__STDC_IEC_559_COMPLEX__"] = []; // Integer constant 1
+	constants["__STDC_ISO_10646__"] = []; // TODO: Figure out what the hell this should be set to
 };
 
 if (typeof module === "object") {

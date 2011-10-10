@@ -28,11 +28,40 @@ Token.prototype.toString = function() {
 	}
 };
 
-Token.prototype.must_be = function(type, value) {
+Token.prototype.diagnostic = function(type, value) {
+	if (!arguments.length) {
+		type = this.type;
+		value = this.value;
+	}
+	switch (type) {
+	case Token.WHITESPACE: switch (value) {
+		case 9:  return "horizontal tab";
+		case 10: return "newline";
+		case 11: return "vertical tab";
+		case 12: return "form feed";
+		case 32: return "space";
+		default: return "whitespace" +
+			(value ? " (unknown code "+value+")" : ""); }
+	case Token.IDENTIFIER:
+		return "identifier" +
+			(value ? " ("+value+")" : "");
+	case Token.STRING_LITERAL:
+		return "string literal" +
+			(value ? " (\"" + value + "\")" : "");
+	default:
+		return Token.lookup[type] || "(unknown token)";
+	}
+};
+
+Token.prototype.must_be = function(self, type, value) {
+	// TODO: Simplify this
+	
 	if (this.type !== type) {
-		throw new ParserError ("Unexpected token, expecting a different one.");
-	} else if (arguments.length > 1 && this.value !== value) {
-		throw new ParserError ("Unexpected token, expecting a different one.");
+		throw new ParserError (self, "Unexpected "+this.diagnostic ()+", expecting "+this.diagnostic (type, value));
+	}
+
+	if (typeof value !== "undefined" && this.value !== value) {
+		throw new ParserError (self, "Unexpected "+this.diagnostic ()+", expecting "+this.diagnostic (type, value));
 	}
 };
 
