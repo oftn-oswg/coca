@@ -43,8 +43,15 @@ test ("Tokenizer#stringify should create surrogate pairs", function () {
 test ("Character constants lexing", function() {
 	var tokenizer = new Tokenizer(new Source("'a'"));
 	var token = tokenizer.consume ();
-	equal (token.type, Token.CHAR_CONST, "Token type is character constant");
-	equal (token.value, 97, "Token value is 'a'");
+	equal (token.type, Token.CHAR_CONST, "<< 'a' >> type is character constant");
+	equal (token.value, 97, "<< 'a' >> value is 'a'");
+	equal (token.extra, false, "<< 'a' >> is not wide");
+
+	tokenizer = new Tokenizer (new Source ("L'a'"));
+	token = tokenizer.consume ();
+	equal (token.type, Token.CHAR_CONST, "<< L'a' >> type is character constant");
+	equal (token.value, 97, "<< L'a' >> value is 'a'");
+	equal (token.extra, true, "<< L'a' >> is wide");
 
 	raises (function() {
 		var tokenizer = new Tokenizer (new Source ("'"));

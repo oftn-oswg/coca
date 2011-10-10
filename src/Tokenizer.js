@@ -62,6 +62,15 @@ Tokenizer.prototype.consume = function() {
 		    this.is_digit (ch))           return this.read_pp_number ();
 	}
 
+	if (ch === 76) /* capital 'L' (wide literal, maybe) */ {
+		this.source.save   ();
+		this.source.nextch ();
+		var ch_ = this.source.peekch ();
+		     if (ch_ === 34) return this.read_string_literal     (true);
+		else if (ch_ === 39) return this.read_character_constant (true);
+		else                 this.source.restore ();
+	}
+
 	if (this.is_digit (ch))           return this.read_number ();
 	if (this.is_identifier_char (ch)) return this.read_identifier ();
 
