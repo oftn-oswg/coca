@@ -249,6 +249,6 @@
     Coca.Builder.addType('With', function(e) {
         this.expr = e;
     }, function(s) {
-        return 'with (' + e + ') {' + s + '}';
+        return 'with (' + this.expr + ') {' + s + '}';
     });
 })();
