@@ -227,6 +227,13 @@
         if (this['finally'])
             src += this['finally'];
         return src;
+    }, {
+        withCatch: function(id) {
+            return (this['catch'] = new Coca.Builder.Catch(id));
+        },
+        withFinally: function() {
+            return (this['finally'] = new Coca.Builder.Finally());
+        }
     });
 
     Coca.Builder.addType('Catch', function(id) {
