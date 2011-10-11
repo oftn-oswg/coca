@@ -2,6 +2,7 @@
  * @fileoverview An API for building JavaScript
  * @author Thomas Allen <thomasmallen@gmail.com>
  */
+Coca = {};
 ;(function() {
     /**
      * Usage:
@@ -68,6 +69,35 @@
         return this.push(';');
     };
 
+    Coca.Builder.addType('String', function(s) {
+        this.s = s;
+    }, function(s) {
+         // This will go much better if we simply require JSON.stringify
+         // and use that here, but I did not want to introduce that
+         // requirement right now.
+         return '"' + this.s.replace(/"/g, '\"') + '"';
+    });
+
+    Coca.Builder.addType('Array', function(ms) {
+        this.members = ms || [];
+    }, function(s) {
+        return '[' + this.members.join(', ') + ']';
+    }, {
+        addMember: function(m) {
+            this.members.push(m);
+        }
+    });
+
+    Coca.Builder.addType('Object', function(o) {
+        this.properties = o || {};
+    }, function(s) {
+        var ps = [];
+        for (var p in this.properties)
+            if (this.properties.hasOwnProperty(p))
+                ps.push("'" + p + "':" + this.properties[p]);
+        return '{' + ps.join(',') + '}';
+    });
+
     Coca.Builder.addType('Group', null, function(s) {
         return '(' + s + ')';
     });
@@ -96,6 +126,12 @@
             vars.push(v);
         }
         return 'var ' + vars.join(', ');
+    });
+
+    Coca.Builder.addType('Return', function(v) {
+        this.v = v;
+    }, function(s) {
+        return 'return ' + this.v + ';';
     });
 
     Coca.Builder.addType('If', function(expr) {
