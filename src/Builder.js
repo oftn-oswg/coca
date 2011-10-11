@@ -135,7 +135,7 @@
         this.expr = expr;
     }, function(s) {
         return 'for (' + this.lh + ' in ' + this.expr + ') {' + s + '}';
-    })
+    });
 
     Coca.Builder.addType('Do', null, function(s) {
         var src = 'do {' + s + '}';
