@@ -8,6 +8,7 @@
      *     var s = new Coca.Builder.Group(),
      *         fn = s.addFunction('doSomething', ['a', 'b', 'c']);
      *     fn.addVariables([['a'], ['b', new Coca.Builder.Function('hello')]])
+     *     fn.endStatement();
      *     fn.addIf('x < 2').addElse().withIf('y > 1');
      *     print(s);
      *     -> (function doSomething(a, b, c) {var a, b = function hello() {};if (x < 2) {}else if (y > 1) {}})
@@ -44,7 +45,7 @@
             Coca.Builder[type] = C;
             P.prototype['add' + type] = function() {
                 var o = new C();
-                C.apply(o, arguments)
+                C.apply(o, arguments);
                 return this.push(o);
             };
         }
@@ -61,14 +62,27 @@
         return this.push('/* ' + s + ' */');
     };
     Coca.Builder.Source.prototype.addEmpty = function() {
-        return  this.push(';');
+        return this.endStatement();
     };
+    Coca.Builder.Source.prototype.endStatement = function() {
+        return this.push(';');
+    };
+
+    Coca.Builder.addType('Group', null, function(s) {
+        return '(' + s + ')';
+    });
 
     Coca.Builder.addType('Function', function(name, args) {
         this.name = name || '';
         this.args = args || [];
     }, function(s) {
         return 'function ' + this.name + '(' + this.args.join(', ') + ') {' + s + '}';
+    });
+
+    Coca.Builder.addType('Invocation', function(args) {
+        this.args = args || [];
+    }, function(s) {
+        return '(' + this.args.join(', ') + ')';
     });
 
     Coca.Builder.addType('Variables', function(vars) {
@@ -81,7 +95,7 @@
                 v += ' = ' + this.vars[i][1];
             vars.push(v);
         }
-        return 'var ' + vars.join(', ') + ';'
+        return 'var ' + vars.join(', ');
     });
 
     Coca.Builder.addType('If', function(expr) {
@@ -110,7 +124,41 @@
         }
     });
 
-    Coca.Builder.addType('Group', null, function(s) {
-        return '(' + s + ')';
+    Coca.Builder.addType('For', function(init, test, step) {
+        this.exprs = [init || '', test || '', step || ''];
+    }, function(s) {
+        return 'for (' + this.exprs.join(';') + ') {' + s + '}';
+    });
+
+    Coca.Builder.addType('ForIn', function(lh, expr) {
+        this.lh = lh;
+        this.expr = expr;
+    }, function(s) {
+        return 'for (' + this.lh + ' in ' + this.expr + ') {' + s + '}';
+    })
+
+    Coca.Builder.addType('Do', null, function(s) {
+        var src = 'do {' + s + '}';
+        if (this['while']) {
+            src += this['while'];
+            this.endStatement();
+        }
+        return src;
+    }, {
+        withWhile: function(expr) {
+            return (this['while'] = new Coca.Builder.While(expr, true));
+        }
+    });
+
+    Coca.Builder.addType('While', function(expr, empty) {
+        this.expr = expr;
+        this.empty = empty;
+    }, function(s) {
+        var src = 'while (' + this.expr + ')';
+        if (this.empty)
+            this.endStatement();
+        else
+            src += '{' + s + '}';
+        return src;
     });
 })();
