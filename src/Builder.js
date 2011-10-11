@@ -8,7 +8,7 @@
      *     var s = new Coca.Builder.Group(),
      *         fn = s.addFunction('doSomething', ['a', 'b', 'c']);
      *     fn.addVariables([['a'], ['b', new Coca.Builder.Function('hello')]])
-     *     fn.addIf('x < 2').addElse().addIf('y > 1');
+     *     fn.addIf('x < 2').addElse().withIf('y > 1');
      *     print(s);
      *     -> (function doSomething(a, b, c) {var a, b = function hello() {};if (x < 2) {}else if (y > 1) {}})
      */
@@ -24,12 +24,12 @@
         },
 
         addType: function(type, fn, toString, ps) {
-            var P = Coca.Builder.Source;
-            var C = function() {
-                if (fn)
-                    fn.apply(this, arguments);
-                P.apply(this);
-            };
+            var P = Coca.Builder.Source,
+                C = function() {
+                    if (fn)
+                        fn.apply(this, arguments);
+                    P.apply(this);
+                };
             C.prototype = new P();
             C.prototype.toString = function() {
                 var s = P.prototype.toString.apply(this);
@@ -105,7 +105,7 @@
             src += '{' + s + '}';
         return src;
     }, {
-        addIf: function(expr) {
+        withIf: function(expr) {
             return (this['if'] = new Coca.Builder.If(expr));
         }
     });
