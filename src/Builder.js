@@ -28,9 +28,12 @@ Coca = {};
         addType: function(type, fn, toString, ps) {
             var P = Coca.Builder.Source,
                 C = function() {
-                    if (fn)
-                        fn.apply(this, arguments);
                     P.apply(this);
+                    if (fn)
+                        if (typeof fn != 'function') {
+                            this.push(fn);
+                            this.endStatement();
+                        } else fn.apply(this, arguments);
                 };
             C.prototype = new P();
             C.prototype.toString = function() {
@@ -59,23 +62,24 @@ Coca = {};
     Coca.Builder.Source.prototype.toString = function() {
         return this.bits.join('');
     };
-    Coca.Builder.Source.prototype.addComment = function(s) {
-        return this.push('/* ' + s + ' */');
-    };
-    Coca.Builder.Source.prototype.addEmpty = function() {
-        return this.endStatement();
-    };
     Coca.Builder.Source.prototype.endStatement = function() {
         return this.push(';');
     };
 
+    // Simple types
+    Coca.Builder.addType('Empty', '');
+    Coca.Builder.addType('Continue', 'continue');
+    Coca.Builder.addType('Break', 'break');
+
+    Coca.Builder.addType('Comment', function(c) {
+        this.push('/* ' + c + '*/');
+    });
+
     Coca.Builder.addType('String', function(s) {
-        this.s = s;
-    }, function(s) {
-         // This will go much better if we simply require JSON.stringify
-         // and use that here, but I did not want to introduce that
-         // requirement right now.
-         return '"' + this.s.replace(/"/g, '\"') + '"';
+        // This will go much better if we simply require JSON.stringify
+        // and use that here, but I did not want to introduce that
+        // requirement right now.
+        this.push('"' + this.s.replace(/"/g, '\"') + '"');
     });
 
     Coca.Builder.addType('Array', function(ms) {
@@ -129,13 +133,13 @@ Coca = {};
     });
 
     Coca.Builder.addType('Return', function(v) {
-        this.v = v;
-    }, function(s) {
-        return 'return ' + this.v + ';';
+        this.push('return ');
+        this.push(v);
+        this.endStatement();
     });
 
-    Coca.Builder.addType('If', function(expr) {
-        this.expr = expr;
+    Coca.Builder.addType('If', function(e) {
+        this.expr = e;
     }, function(s) {
         var src = 'if (' + this.expr + ') {' + s + '}';
         if (this['else'])
@@ -155,8 +159,8 @@ Coca = {};
             src += '{' + s + '}';
         return src;
     }, {
-        withIf: function(expr) {
-            return (this['if'] = new Coca.Builder.If(expr));
+        withIf: function(e) {
+            return (this['if'] = new Coca.Builder.If(e));
         }
     });
 
@@ -166,9 +170,9 @@ Coca = {};
         return 'for (' + this.exprs.join(';') + ') {' + s + '}';
     });
 
-    Coca.Builder.addType('ForIn', function(lh, expr) {
+    Coca.Builder.addType('ForIn', function(lh, e) {
         this.lh = lh;
-        this.expr = expr;
+        this.expr = e;
     }, function(s) {
         return 'for (' + this.lh + ' in ' + this.expr + ') {' + s + '}';
     });
@@ -181,13 +185,13 @@ Coca = {};
         }
         return src;
     }, {
-        withWhile: function(expr) {
-            return (this['while'] = new Coca.Builder.While(expr, true));
+        withWhile: function(e) {
+            return (this['while'] = new Coca.Builder.While(e, true));
         }
     });
 
-    Coca.Builder.addType('While', function(expr, empty) {
-        this.expr = expr;
+    Coca.Builder.addType('While', function(e, empty) {
+        this.expr = e;
         this.empty = empty;
     }, function(s) {
         var src = 'while (' + this.expr + ')';
@@ -196,5 +200,49 @@ Coca = {};
         else
             src += '{' + s + '}';
         return src;
+    });
+
+    Coca.Builder.addType('Switch', function(e) {
+        this.expr = e;
+    }, function(s) {
+        return 'switch (' + this.expr + ') { ' + s + ' }';
+    });
+
+    Coca.Builder.addType('Case', function(e) {
+        this.push('case ' + e + ':');
+    });
+
+    Coca.Builder.addType('Label', function(s) {
+        this.push(s + ':');
+    });
+
+    Coca.Builder.addType('Throw', function(e) {
+        this.push('throw ' + e);
+        this.endStatement();
+    });
+
+    Coca.Builder.addType('Try', null, function(s) {
+        var src = 'try {' + s + '}';
+        if (this['catch'])
+            src += this['catch'];
+        if (this['finally'])
+            src += this['finally'];
+        return src;
+    });
+
+    Coca.Builder.addType('Catch', function(id) {
+        this.id = id;
+    }, function(s) {
+        return 'catch (' + this.id + ') {' + s + '}';
+    });
+
+    Coca.Builder.addType('Finally', null, function(s) {
+        return 'finally {' + s + '}';
+    });
+
+    Coca.Builder.addType('With', function(e) {
+        this.expr = e;
+    }, function(s) {
+        return 'with (' + e + ') {' + s + '}';
     });
 })();
