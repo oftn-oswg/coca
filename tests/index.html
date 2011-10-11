@@ -1,26 +1,30 @@
 <!DOCTYPE html>
 <html>
-<head>
-<link rel="stylesheet" href="res/qunit.css" type="text/css" media="screen" />
-<link rel="stylesheet" href="res/global.css" type="text/css" media="screen" />
-</head>
-<body>
+    <head>
+        <link rel="stylesheet" href="res/qunit.css" type="text/css" media="screen" />
+        <link rel="stylesheet" href="res/global.css" type="text/css" media="screen" />
+    </head>
+    <body>
+        <h1 id="qunit-header">Coca Tests</h1>
+        <div id="qunit-banner"></div>
+        <div id="qunit-testrunner-toolbar"></div>
+        <ol id="qunit-tests"></ol>
 
-<h1 id="qunit-header">Coca Tests</h1>
-<div id="qunit-banner"></div>
-<div id="qunit-testrunner-toolbar"></div>
-<ol id="qunit-tests"></ol>
+        <script type="text/javascript" src="res/qunit.js"></script>
 
-<script type="text/javascript" src="res/qunit.js"></script>
-<script type="text/javascript" src="../src/Token.js"></script>
-<script type="text/javascript" src="../src/Parser.js"></script>
-<script type="text/javascript" src="../src/Source.js"></script>
-<script type="text/javascript" src="../src/Tokenizer.js"></script>
-<script type="text/javascript" src="../src/Preprocessor.js"></script>
+        <!-- Project sources -->
+        <script type="text/javascript" src="../src/Bootstrap.js"></script>
+        <script type="text/javascript" src="../src/Token.js"></script>
+        <script type="text/javascript" src="../src/Parser.js"></script>
+        <script type="text/javascript" src="../src/Source.js"></script>
+        <script type="text/javascript" src="../src/Tokenizer.js"></script>
+        <script type="text/javascript" src="../src/Preprocessor.js"></script>
+        <script type="text/javascript" src="../src/Builder.js"></script>
 
-<script type="text/javascript" src="Source.tests.js"></script>
-<script type="text/javascript" src="Tokenizer.tests.js"></script>
-<script type="text/javascript" src="Preprocessor.tests.js"></script>
-
-</body>
+        <!-- Tests -->
+        <script type="text/javascript" src="Source.tests.js"></script>
+        <script type="text/javascript" src="Tokenizer.tests.js"></script>
+        <script type="text/javascript" src="Preprocessor.tests.js"></script>
+        <script type="text/javascript" src="Builder.tests.js"></script>
+    </body>
 </html>
