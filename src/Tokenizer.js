@@ -52,31 +52,41 @@ Tokenizer.prototype.is_identifier_char   = function(ch) { return (ch >= 65 && ch
 Tokenizer.prototype.consume = function() {
 	var ch = this.source.peekch ();
 
-	if (this.is_whitespace (ch))      return new Token (Token.WHITESPACE, this.source.nextch ());
-
-	if (this.source.in_directive === Preprocessor.INCLUDE) {
-		if (ch === 60) /* is-less-than */ return this.read_header_name (false);
+	/* end of file */
+	if (ch === -1) {
+		return null;
 	}
-	if (this.source.in_directive !== Preprocessor.NO_DIRECTIVE) {
-		if (ch === 46 ||
-		    this.is_digit (ch))           return this.read_pp_number ();
+
+	if (this.is_whitespace (ch)) {
+		return new Token (Token.WHITESPACE, this.source.nextch ());
 	}
 
 	if (ch === 76) /* capital 'L' (wide literal, maybe) */ {
 		this.source.save   ();
 		this.source.nextch ();
-		var ch_ = this.source.peekch ();
-		     if (ch_ === 34) return this.read_string_literal     (true);
-		else if (ch_ === 39) return this.read_character_constant (true);
-		else                 this.source.restore ();
+		switch (this.source.peekch ()) {
+		case 34: return this.read_string_literal (true);
+		case 39: return this.read_character_constant (true);
+		}
+		this.source.restore ();
 	}
 
-	if (this.is_digit (ch))           return this.read_number ();
-	if (this.is_identifier_char (ch)) return this.read_identifier ();
+	if (this.is_digit (ch)) {
+		return this.read_number ();
+	}
+	if (this.is_identifier_char (ch)) {
+		return this.read_identifier ();
+	}
 
-	if (ch === 34) /* double-quote */ return this.read_string_literal (false);
-	if (ch === 39) /* single-quote */ return this.read_character_constant (false);
-	if (ch === -1) /* end-of-file  */ return null;
+	/* double-quote */
+	if (ch === 34) {
+		return this.read_string_literal (false);
+	}
+
+	/* single-quote */
+	if (ch === 39) {
+		return this.read_character_constant (false);
+	}
 
 	if (ch === 47) /* forward slash */ {
 		this.source.save ();
@@ -115,7 +125,9 @@ Tokenizer.prototype.read_escape_sequence = function() {
 		max = 3;
 		while (max--) {
 			code = code << 3 | (ch - 48);
-			if (!this.is_octal_digit (this.source.peekch ())) break;
+			if (!this.is_octal_digit (this.source.peekch ())) {
+				break;
+			}
 			ch = this.source.nextch ();
 		}
 		return code;
@@ -127,7 +139,7 @@ Tokenizer.prototype.read_escape_sequence = function() {
 			if (!this.is_hexadecimal_digit (ch)) {
 				throw new ParserError (this, "Universal character name requires " + required + " hexadecimal digits");
 			}
-			code = code << 4 | ch - ((ch >= 48 && ch <= 57) ? 48 : (ch >= 65 && c <= 70) ? 55 : 87);
+			code = code << 4 | ch - ((ch >= 48 && ch <= 57) ? 48 : (ch >= 65 && ch <= 70) ? 55 : 87);
 		}
 		return code;
 	case 97: return 7;   /* \a: Bell character */
@@ -143,9 +155,9 @@ Tokenizer.prototype.read_escape_sequence = function() {
 			this.source.nextch ();
 		}
 		return code;
-	default:
-		throw new ParserError (this, "Unknown escape sequence", ch);
 	}
+	
+	throw new ParserError (this, "Unknown escape sequence", ch);
 };
 
 

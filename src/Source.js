@@ -95,8 +95,7 @@ Source.prototype.nextch = function() {
 	} else switch (ch) {
 		case 92:
 			/* backslash */
-			switch (this.ch (this.cursor)) {
-			case 10:
+			if (this.ch (this.cursor) === 10) {
 				/* backslash and newline; skip */
 				this.cursor++;
 				this.line++;

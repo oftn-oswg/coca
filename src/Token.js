@@ -1,6 +1,7 @@
 "use strict";
 
 if (typeof require === "function") {
+	var Trie = require ("./Trie");
 	var Parser = require ("./Parser");
 	var ParserError = Parser.ParserError;
 }
@@ -42,6 +43,7 @@ Token.prototype.diagnostic = function(type, value) {
 		case 32: return "space";
 		default: return "whitespace" +
 			(value ? " (unknown code "+value+")" : ""); }
+		break;
 	case Token.IDENTIFIER:
 		return "identifier" +
 			(value ? " ("+value+")" : "");
@@ -67,7 +69,7 @@ Token.prototype.must_be = function(self, type, value) {
 
 Token.lookup = [];
 Token.keywords = {};
-Token.punctuators = {};
+Token.punctuators = new Trie ();
 
 
 /* Build necessary types */
@@ -96,26 +98,14 @@ Token.punctuators = {};
 
 	/* Add punctuators and build trie */
 	for (var punc in punctuators) {
+		if (punctuators.hasOwnProperty (punc)) {
+			Token[punc] = index;
+			Token.lookup[index] = punctuators[punc];
 
-		Token[punc] = index;
-		Token.lookup[index] = punctuators[punc];
+			Token.punctuators.add (punctuators[punc], index);
 
-		(function self(string, object, value) {
-			var ch, child;
-
-			if (string.length === 0) {
-				object.value = value;
-				return;
-			}
-
-			ch = string.charCodeAt (0);
-			child = object[ch] || (object[ch] = {});
-
-			self (string.substring (1), child, value);
-
-		})(punctuators[punc], Token.punctuators, index);
-
-		index++;
+			index++;
+		}
 	}
 
 })();
