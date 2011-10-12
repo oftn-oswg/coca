@@ -13,7 +13,7 @@ There are many uses for having a C implementation written in JavaScript. The web
 Roadmap
 ---------
 
-* Tokenizing (~80% complete)
+* Tokenizing (~90% complete)
 * Preprocessing (~5% complete)
 * Parsing
 * Analysis
