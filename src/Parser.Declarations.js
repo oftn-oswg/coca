@@ -38,7 +38,7 @@ Parser.prototype.external_decl = function() {
 			old_style_decls.push (this.declaration ());
 		}
 		// TODO: Add compound-statement to parse tree
-		return this.function_definition (declaration_specifiers, old_style_decls);
+		return this.function_definition (specifiers, old_style_decls);
 	}
 
 };
@@ -114,28 +114,58 @@ Parser.prototype.declaration_specifiers = function() {
 	}
 };
 
-
+/* 6.7 Declarations
+ *
+ * declaration:
+ *     declaration-specifiers init-declarator-list(opt) ";"
+ */
 Parser.prototype.declaration = function() {
 	var specifiers, token, result = [];
 
 	specifiers = this.declaration_specifiers ();
 	result.push (specifiers);
 
-	while (true) {
-
-		token = this.tokenizer.lookahead ();
-		if (token.type === Token.PUNC_SEMICOLON) {
-			this.tokenizer.consume ();
-			break;
-		}
-
+	token = this.tokenizer.lookahead ();
+	if (token.type !== Token.PUNC_SEMICOLON) {
 		result.push (this.init_declarator_list ());
-	};
+	}
+
+	token = this.tokenizer.consume ();
+	token.must_be (this, Token.PUNC_SEMICOLON);
 
 	return result;
 };
 
+/* 6.7 Declarations
+ *
+ * init-declarator-list:
+ *     init-declarator
+ *     init-declarator-list "," init-declarator
+ */
+Parser.prototype.init_declarator_list = function(start) {
+	var token, result;
 
+	result = [];
+	
+	while (true) {
+		result.push (this.init_declarator ());
+
+		token = this.tokenizer.lookahead ();
+		if (token.type !== Token.PUNC_COMMA) {
+			break;
+		}
+		this.tokenizer.consume ();
+	}
+
+	return result;
+};
+
+/* 6.7 Declarations
+ *
+ * init-declarator:
+ *     declarator
+ *     declarator "=" initializer
+ */
 Parser.prototype.init_declarator = function(start) {
 	var declarator, token, initializer;
 	
@@ -150,12 +180,105 @@ Parser.prototype.init_declarator = function(start) {
 	return [declarator, initializer];
 };
 
-
+/* 6.7.5 Declarators
+ *
+ * declarator:
+ *     pointer(opt) direct-declarator
+ */
 Parser.prototype.declarator = function() {
-	var token;
+	var token, pointer = false;
 
 	token = this.tokenizer.lookahead ();
 	if (token.type === Token.PUNC_ASTERISK) {
+		this.tokenizer.consume ();
+		pointer = true;
 	}
+
+	direct = this.direct_declarator ();
+
+	// TODO: Return declarator object/node
 };
 
+
+/* 6.7.5 Declarators
+ *
+ * direct-declarator:
+ *     identifier
+ *     "(" declarator ")"
+ *     direct-declarator [ type-qualifier-listopt assignment-expressionopt ]
+ *     direct-declarator [ static type-qualifier-listopt assignment-expression ]
+ *     direct-declarator [ type-qualifier-list static assignment-expression ]
+ *     direct-declarator [ type-qualifier-listopt * ]
+ *     direct-declarator ( parameter-type-list )
+ *     direct-declarator ( identifier-listopt )
+ */
+Parser.prototype.direct_declarator = function() {
+	var token, result = [];
+
+	while (true) {
+		token = this.tokenizer.lookahead ();
+		switch (token.type) {
+		case Token.IDENTIFIER: // identifier
+			this.tokenizer.consume ();
+			result.push (token);
+			continue;
+		case Token.PUNC_PAREN_OPEN: // "(" declarator ")"
+			this.tokenizer.consume ();
+			result.push (this.declarator ());
+			
+			token = this.tokenizer.consume ();
+			token.must_be (this, Token.PUNC_PAREN_CLOSE);
+			continue;
+		}
+		break;
+	}
+
+	while (true) {
+		token = this.tokenizer.lookahead ();
+		switch (token.type) {
+		case Token.PUNC_PAREN_OPEN:
+			this.tokenizer.consume ();
+			// TODO: parameter-type-list or optional identifier-list(opt)
+			token = this.tokenizer.consume ();
+			token.must_be (this, Token.PUNC_PAREN_CLOSE);
+			continue;
+		case Token.PUNC_BRAC_OPEN:
+			this.tokenizer.consume ();
+			continue;
+		}
+		break;
+	}
+
+
+	token = this.tokenizer.lookahead ();
+	if (
+	loop:
+	while (true) {
+		token = this.tokenizer.lookahead ();
+		switch (token.type) {
+		case Token.IDENTIFIER:
+			this.tokenizer.consume ();
+			result.push (token);
+			break;
+		case Token.PUNC_PAREN_OPEN:
+			this.tokenizer.consume ();
+			result.push (this.declarator ());
+			
+			token = this.tokenizer.consume ();
+			token.must_be (this, Token.PUNC_PAREN_CLOSE);
+			break;
+		case Token.
+		default:
+			break loop;
+		}
+		if (token.type === Token.IDENTIFIER) {
+			this.tokenizer.consume ();
+			result.push (token);
+			continue;
+		}
+
+		token = this.tokenizer.lookahead ();
+		if (token.type === Token.PUNC_PAREN_OPEN) {
+			
+		}
+};
